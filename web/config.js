@@ -6,6 +6,9 @@
 export const SUPABASE_URL = 'https://itfcekypwboljvwyzfkg.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0ZmNla3lwd2JvbGp2d3l6ZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMzk0MjUsImV4cCI6MjEwOTkxNTQyNX0.5xhst48-6yek7JliVjQ89qi3iQ1KY8AKZ9YrieTmhnc';
 
+// Veřejný klíč pro push notifikace (soukromý je jen v databázi)
+export const VAPID_PUBLIC_KEY = 'BFQrGKPOvP8zYQh-ga2C0E6DuVY03zCHtuWD_qaccFhCIBj2uesHXVdWKLSOU0fq0rA_BhbNnVKkUeOlI71nt6k';
+
 // Stripe → Payment Links (jeden odkaz pro každý tarif a délku)
 // Prázdný odkaz = tlačítko zaplatit ukáže hlášku „Brzy dostupné“.
 export const PAYMENT_LINKS = {
