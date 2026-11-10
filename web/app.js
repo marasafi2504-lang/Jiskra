@@ -292,17 +292,22 @@ function b64ToU8(b64) {
 }
 const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && !!C.VAPID_PUBLIC_KEY;
 
+const swReady = () => Promise.race([navigator.serviceWorker.ready, new Promise((_, rej) => setTimeout(() => rej(new Error('Service worker není připravený, zkus to za chvíli.')), 5000))]);
+
 async function pushEnabled() {
-  if (!pushSupported() || Notification.permission !== 'granted') return false;
-  const reg = await navigator.serviceWorker.ready;
-  return !!(await reg.pushManager.getSubscription());
+  try {
+    if (!pushSupported() || Notification.permission !== 'granted') return false;
+    const reg = await swReady();
+    return !!(await reg.pushManager.getSubscription());
+  } catch { return false; }
 }
 
 async function enablePush() {
   if (!pushSupported()) { toast('Tenhle prohlížeč notifikace neumí.'); return false; }
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') { toast('Notifikace jsou zakázané v nastavení telefonu.'); return false; }
-  const reg = await navigator.serviceWorker.ready;
+  let reg;
+  try { reg = await swReady(); } catch (e) { toast(e.message); return false; }
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(C.VAPID_PUBLIC_KEY) });
   const j = sub.toJSON();
@@ -314,7 +319,7 @@ async function enablePush() {
 
 async function disablePush() {
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await swReady();
     const sub = await reg.pushManager.getSubscription();
     if (sub) { await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); await sub.unsubscribe(); }
     toast('Notifikace vypnuty.');
