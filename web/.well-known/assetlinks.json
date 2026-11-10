@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "cz.jiskra.app",
+    "sha256_cert_fingerprints": [
+      "13:A5:04:63:FC:2F:2F:B3:CF:99:DF:65:99:DB:28:8A:19:86:71:D1:53:B8:5C:C3:2E:4A:C6:CD:07:67:B7:A5"
+    ]
+  }
+}]
