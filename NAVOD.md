@@ -38,27 +38,27 @@ Soubory už jsou na GitHubu v repozitáři **Jiskra**, ten krok je hotový.
 2. Otevři **netlify.com** → *Sign up* → **přihlas se přes GitHub**.
 3. **Add new site → Import an existing project → GitHub** → povol přístup → vyber repozitář **Jiskra** → **Deploy**. (Nastavení se načte samo ze souboru `netlify.toml`.)
 4. **Site configuration → Change site name** → napiš třeba `jiskra-seznamka`.
-5. Aplikace běží na **`https://jiskra-seznamka.netlify.app`** 🎉
+5. Aplikace běží na **`https://jiskra.marasafi2504.workers.dev`** 🎉
    Každá změna na GitHubu se na Netlify sama projeví za chvilku.
 
 ## Krok 3 – Propojení přihlášení
 
 V Supabase: **Authentication → URL Configuration**
-- *Site URL*: `https://jiskra-seznamka.netlify.app`
-- *Redirect URLs*: přidej `https://jiskra-seznamka.netlify.app/**`
+- *Site URL*: `https://jiskra.marasafi2504.workers.dev`
+- *Redirect URLs*: přidej `https://jiskra.marasafi2504.workers.dev/**`
 
 Tím budou fungovat odkazy v e-mailech (potvrzení registrace, zapomenuté heslo).
 
 ## Krok 4 – Vyzkoušej to
 
-Otevři `https://jiskra-seznamka.netlify.app` v Chrome → zaregistruj se → vyplň profil.
+Otevři `https://jiskra.marasafi2504.workers.dev` v Chrome → zaregistruj se → vyplň profil.
 Shodu vyzkoušíš tak, že si založíš **druhý účet** (s jiným e-mailem, třeba na tabletu) a navzájem se lajknete.
 
 > V Chrome si aplikaci můžeš hned nainstalovat: ⋮ → *Přidat na plochu / Instalovat aplikaci*.
 
 ## Krok 5 – PWABuilder → Android aplikace
 
-1. Na **pwabuilder.com** vlož `https://jiskra-seznamka.netlify.app` → **Start**.
+1. Na **pwabuilder.com** vlož `https://jiskra.marasafi2504.workers.dev` → **Start**.
 2. *Package for stores* → **Android** → *Generate package*.
    - *Package ID*: např. `cz.jiskra.app` (pak už ho neměň)
    - *App name*: Jiskra
