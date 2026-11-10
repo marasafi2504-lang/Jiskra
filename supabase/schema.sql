@@ -301,3 +301,13 @@ create policy "update own photos" on storage.objects for update to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "delete own photos" on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------------------------------------------------------------------
+-- ZABEZPEČENÍ FUNKCÍ (nepřihlášení nesmí volat nic, triggery nikdo přímo)
+-- ---------------------------------------------------------------------
+alter function public.age_of(date) set search_path = public;
+revoke execute on function public.check_swipe_limits(), public.create_match(), public.check_adult() from public, anon, authenticated;
+revoke execute on function public.get_candidates(int), public.my_matches(), public.likes_me_count(), public.likes_me(),
+  public.delete_my_account(), public.current_plan(uuid), public.is_match_member(uuid) from public, anon;
+grant execute on function public.get_candidates(int), public.my_matches(), public.likes_me_count(), public.likes_me(),
+  public.delete_my_account(), public.current_plan(uuid), public.is_match_member(uuid) to authenticated;
