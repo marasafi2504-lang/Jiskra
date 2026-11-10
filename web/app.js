@@ -5,6 +5,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import * as C from './config.js';
 
 const app = document.getElementById('app');
+// Na bezplatném Netlify je dole odznak – necháme pod menu volné místo
+if (location.hostname.endsWith('netlify.app')) document.documentElement.classList.add('has-badge');
 const configured = !C.SUPABASE_URL.includes('DOPLN') && !C.SUPABASE_ANON_KEY.includes('DOPLN');
 const sb = configured ? createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY) : null;
 
@@ -680,7 +682,7 @@ async function renderChat(matchId) {
   const me = S.session.user.id;
   const seen = new Set();
 
-  app.innerHTML = `<div class="screen" style="height:100dvh">
+  app.innerHTML = `<div class="screen" style="height:calc(100dvh - var(--badge) - var(--safe-t))">
     <div class="chat-head">
       <a class="icon-btn ghost" href="#/chats" aria-label="Zpět na zprávy">${I.back({ size: 22, color: '#fff' })}</a>
       <div class="avatar sm" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>

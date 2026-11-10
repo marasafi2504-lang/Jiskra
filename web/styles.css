@@ -20,7 +20,9 @@
   --radius: 22px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  --badge: 0px; /* místo pro odznak hostingu (Netlify zdarma) */
 }
+html.has-badge { --badge: 64px; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
@@ -33,7 +35,7 @@ button { cursor: pointer; }
 
 #app {
   max-width: 480px; margin: 0 auto; min-height: 100dvh; position: relative; overflow: hidden;
-  display: flex; flex-direction: column; padding-top: var(--safe-t);
+  display: flex; flex-direction: column; padding-top: var(--safe-t); padding-bottom: var(--badge);
 }
 
 /* dekorativní fialové vlny */
@@ -184,6 +186,7 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 /* modální okna */
 .overlay { position: fixed; inset: 0; z-index: 50; background: rgba(11, 6, 20, .96); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; text-align: center; animation: fade .25s ease; }
 .sheet-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, .6); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s; }
+.sheet-wrap { padding-bottom: var(--badge); }
 .sheet { width: 100%; max-width: 480px; background: var(--bg-2); border-top: 1px solid var(--line); border-radius: 26px 26px 0 0; padding: 20px 20px calc(20px + var(--safe-b)); display: flex; flex-direction: column; gap: 10px; }
 @keyframes fade { from { opacity: 0; } }
 .match-pics { position: relative; width: 300px; height: 190px; margin: 34px 0; }
@@ -192,7 +195,7 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 .match-pics .pic.b { right: 20px; transform: rotate(8deg); }
 .match-pics .heart { position: absolute; left: 122px; top: 140px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); border: 3px solid var(--bg); display: flex; align-items: center; justify-content: center; }
 
-#toast { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b)); transform: translateX(-50%) translateY(20px); background: #2A1650; border: 1px solid var(--line-strong); color: #fff; padding: 12px 18px; border-radius: 16px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: .25s; z-index: 100; max-width: 90vw; text-align: center; }
+#toast { position: fixed; left: 50%; bottom: calc(100px + var(--safe-b) + var(--badge)); transform: translateX(-50%) translateY(20px); background: #2A1650; border: 1px solid var(--line-strong); color: #fff; padding: 12px 18px; border-radius: 16px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: .25s; z-index: 100; max-width: 90vw; text-align: center; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
