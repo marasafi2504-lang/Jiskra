@@ -3,7 +3,7 @@
 // =====================================================================
 
 // Supabase → Project Settings → API
-export const SUPABASE_URL = 'https://DOPLN-PROJEKT.supabase.co';
+export const SUPABASE_URL = 'https://itfcekypwboljvwyzfkg.supabase.co';
 export const SUPABASE_ANON_KEY = 'DOPLN-ANON-PUBLIC-KLIC';
 
 // Stripe → Payment Links (jeden odkaz pro každý tarif a délku)
