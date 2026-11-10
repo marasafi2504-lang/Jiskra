@@ -57,9 +57,6 @@ create policy "own profile select" on public.profiles for select using (id = aut
 create policy "own profile insert" on public.profiles for insert with check (id = auth.uid());
 create policy "own profile update" on public.profiles for update using (id = auth.uid());
 
-grant update (name, birthdate, gender, looking_for, bio, city, job, interests, photo_url, min_age, max_age)
-  on public.profiles to authenticated;
-
 -- ---------------------------------------------------------------------
 -- PŘEDPLATNÉ (zapisuje jen server – Stripe webhook)
 -- ---------------------------------------------------------------------
