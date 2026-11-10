@@ -349,3 +349,6 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 /* přihlášení přes sociální sítě */
 .btn-social { background: #FFFFFF; color: #1F1F1F; font-weight: 700; }
 .btn-social.fb { background: #1877F2; color: #FFFFFF; }
+
+.btn-sm { white-space: nowrap; }
+.msg.img { white-space: normal; }

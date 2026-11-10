@@ -1193,8 +1193,8 @@ async function renderChat(matchId) {
   const box = $('#msgs');
   const renderMsg = (msg) => {
     const mine = msg.sender === me;
-    const html = `${msg.kind === 'image' && msg.image_url ? `<img src="${esc(msg.image_url)}" alt="Fotka" class="msg-img" loading="lazy">` : esc(msg.body)}
-      <time>${timeLabel(msg.created_at)}</time>${msg.reaction ? `<span class="reaction">${esc(msg.reaction)}</span>` : ''}`;
+    const html = (msg.kind === 'image' && msg.image_url ? `<img src="${esc(msg.image_url)}" alt="Fotka" class="msg-img" loading="lazy">` : esc(msg.body))
+      + `<time>${timeLabel(msg.created_at)}</time>` + (msg.reaction ? `<span class="reaction">${esc(msg.reaction)}</span>` : '');
     let el = box.querySelector(`[data-mid="${msg.id}"]`);
     if (!el) {
       el = document.createElement('div');
