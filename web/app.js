@@ -409,13 +409,16 @@ function renderAuth(mode = 'welcome') {
       </div>
       <div style="flex:1;min-height:28px"></div>
       <div style="display:flex;flex-direction:column;gap:12px">
-        <button class="btn btn-primary" data-act="signup">Vytvořit účet ${I.arrow({ size: 18, color: '#fff' })}</button>
-        <button class="btn btn-outline" data-act="signin">Už mám účet – přihlásit se</button>
+        ${(C.AUTH_PROVIDERS || []).includes('google') ? '<button class="btn btn-social" data-oauth="google">Pokračovat přes Google</button>' : ''}
+        ${(C.AUTH_PROVIDERS || []).includes('facebook') ? '<button class="btn btn-social fb" data-oauth="facebook">Pokračovat přes Facebook</button>' : ''}
+        <button class="btn btn-primary" data-act="signup">Pokračovat e-mailem ${I.arrow({ size: 18, color: '#fff' })}</button>
+        <button class="link-btn" data-act="signin" style="align-self:center">Už mám účet s e-mailem – přihlásit se</button>
         <p class="small muted" style="text-align:center;margin:6px 0 0">Pokračováním souhlasíš s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a> a <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">zásadami ochrany soukromí</a>. Jen pro 18+.</p>
       </div>
     </div>`;
     $('[data-act=signup]').onclick = () => renderAuth('signup');
     $('[data-act=signin]').onclick = () => renderAuth('signin');
+    $$('[data-oauth]').forEach((b) => (b.onclick = () => oauth(b.dataset.oauth)));
     return;
   }
   const signup = mode === 'signup';
@@ -468,6 +471,14 @@ function renderAuth(mode = 'welcome') {
       btn.disabled = false;
     }
   };
+}
+
+async function oauth(provider) {
+  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
+  if (error) {
+    const m = String(error.message || '');
+    toast(/not enabled|Unsupported provider/i.test(m) ? `Přihlášení přes ${provider === 'google' ? 'Google' : 'Facebook'} zatím není zapnuté. Použij e-mail.` : errText(error), 4000);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -613,6 +624,10 @@ const W = { step: 0, name: '', birthdate: '', gender: 'muz', looking_for: 'zeny'
   photos: [], bio: '', city: '', job: '', interests: new Set(), prompts: [], personality: null, lat: null, lng: null, consent: false };
 
 function renderWizard() {
+  if (!W.name && S.session) {
+    const md = S.session.user.user_metadata || {};
+    W.name = (md.given_name || md.first_name || (md.full_name || md.name || '').split(' ')[0] || '').slice(0, 40);
+  }
   const steps = ['Jméno', 'Kdo jsi', 'Fotky', 'O tobě', 'Osobnost', 'Hotovo'];
   const n = W.step;
   const maxBirth = new Date(); maxBirth.setFullYear(maxBirth.getFullYear() - 18);

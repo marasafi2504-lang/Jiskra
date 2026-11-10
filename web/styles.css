@@ -345,3 +345,7 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 .tag { padding: 2px 8px; border-radius: 8px; background: #2A1650; font-size: 11px; font-weight: 800; color: var(--accent-soft); }
 .tag.red { background: #450A0A; color: #FCA5A5; }
 .range { width: 100%; accent-color: var(--primary); height: 32px; }
+
+/* přihlášení přes sociální sítě */
+.btn-social { background: #FFFFFF; color: #1F1F1F; font-weight: 700; }
+.btn-social.fb { background: #1877F2; color: #FFFFFF; }
