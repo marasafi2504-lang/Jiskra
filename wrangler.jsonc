@@ -1,0 +1,9 @@
+// Cloudflare: zveřejní složku "web" jako statický web (bez vodoznaku)
+{
+  "name": "jiskra",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./web",
+    "not_found_handling": "single-page-application"
+  }
+}
