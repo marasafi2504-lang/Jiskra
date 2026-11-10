@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Jiskra – databáze pro Supabase
--- Spusť celý soubor v Supabase: SQL Editor → New query → vložit → Run
+-- Spusť celý soubor JEDNOU v Supabase: SQL Editor → New query → vložit → Run
 -- =====================================================================
 
 create extension if not exists pgcrypto;
@@ -27,7 +27,7 @@ create table if not exists public.profiles (
 
 -- Ověření věku 18+ (trigger, protože CHECK nesmí používat current_date)
 create or replace function public.check_adult() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public as $$
 begin
   if new.birthdate > (current_date - interval '18 years') then
     raise exception 'under_18';
@@ -35,27 +35,28 @@ begin
   if array_length(new.interests, 1) > 10 then
     raise exception 'too_many_interests';
   end if;
+  -- "verified" smí měnit jen admin, ne uživatel z aplikace
+  if coalesce(auth.role(), '') in ('authenticated', 'anon') then
+    if tg_op = 'INSERT' then
+      new.verified := false;
+    else
+      new.verified := old.verified;
+      new.id := old.id;
+    end if;
+  end if;
   return new;
 end $$;
 
-drop trigger if exists profiles_check_adult on public.profiles;
 create trigger profiles_check_adult before insert or update on public.profiles
   for each row execute function public.check_adult();
 
 alter table public.profiles enable row level security;
 
 -- Uživatel vidí a mění jen svůj řádek; cizí profily jdou jen přes funkce níže
-drop policy if exists "own profile select" on public.profiles;
 create policy "own profile select" on public.profiles for select using (id = auth.uid());
-drop policy if exists "own profile insert" on public.profiles;
 create policy "own profile insert" on public.profiles for insert with check (id = auth.uid());
-drop policy if exists "own profile update" on public.profiles;
 create policy "own profile update" on public.profiles for update using (id = auth.uid());
 
--- Sloupec "verified" nesmí uživatel měnit sám
-revoke insert, update on public.profiles from authenticated, anon;
-grant insert (id, name, birthdate, gender, looking_for, bio, city, job, interests, photo_url, min_age, max_age)
-  on public.profiles to authenticated;
 grant update (name, birthdate, gender, looking_for, bio, city, job, interests, photo_url, min_age, max_age)
   on public.profiles to authenticated;
 
@@ -71,7 +72,6 @@ create table if not exists public.subscriptions (
   updated_at       timestamptz not null default now()
 );
 alter table public.subscriptions enable row level security;
-drop policy if exists "own sub select" on public.subscriptions;
 create policy "own sub select" on public.subscriptions for select using (user_id = auth.uid());
 
 create or replace function public.current_plan(uid uuid) returns text
@@ -93,12 +93,9 @@ create table if not exists public.swipes (
 create index if not exists swipes_swipee_idx on public.swipes (swipee, kind);
 alter table public.swipes enable row level security;
 
-drop policy if exists "own swipes select" on public.swipes;
 create policy "own swipes select" on public.swipes for select using (swiper = auth.uid());
-drop policy if exists "own swipes insert" on public.swipes;
 create policy "own swipes insert" on public.swipes for insert with check (swiper = auth.uid());
 -- Vrácení posledního swipu jen s předplatným
-drop policy if exists "premium rewind" on public.swipes;
 create policy "premium rewind" on public.swipes for delete
   using (swiper = auth.uid() and public.current_plan(auth.uid()) is not null);
 
@@ -125,7 +122,6 @@ begin
   return new;
 end $$;
 
-drop trigger if exists swipes_limits on public.swipes;
 create trigger swipes_limits before insert on public.swipes
   for each row execute function public.check_swipe_limits();
 
@@ -141,10 +137,8 @@ create table if not exists public.matches (
   check (user_a < user_b)
 );
 alter table public.matches enable row level security;
-drop policy if exists "member match select" on public.matches;
 create policy "member match select" on public.matches for select
   using (auth.uid() in (user_a, user_b));
-drop policy if exists "member match delete" on public.matches;
 create policy "member match delete" on public.matches for delete
   using (auth.uid() in (user_a, user_b));
 
@@ -163,7 +157,6 @@ begin
   return new;
 end $$;
 
-drop trigger if exists swipes_match on public.swipes;
 create trigger swipes_match after insert on public.swipes
   for each row execute function public.create_match();
 
@@ -185,10 +178,8 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from matches where id = m and auth.uid() in (user_a, user_b))
 $$;
 
-drop policy if exists "member messages select" on public.messages;
 create policy "member messages select" on public.messages for select
   using (public.is_match_member(match_id));
-drop policy if exists "member messages insert" on public.messages;
 create policy "member messages insert" on public.messages for insert
   with check (sender = auth.uid() and public.is_match_member(match_id));
 
@@ -203,7 +194,6 @@ create table if not exists public.reports (
   created_at timestamptz not null default now()
 );
 alter table public.reports enable row level security;
-drop policy if exists "own report insert" on public.reports;
 create policy "own report insert" on public.reports for insert with check (reporter = auth.uid());
 
 -- ---------------------------------------------------------------------
@@ -290,7 +280,6 @@ begin
   if auth.uid() is null then raise exception 'not_signed_in'; end if;
   delete from auth.users where id = auth.uid();
 end $$;
-revoke execute on function public.delete_my_account() from anon;
 
 -- ---------------------------------------------------------------------
 -- REALTIME (živý chat a nové shody)
@@ -309,12 +298,9 @@ insert into storage.buckets (id, name, public)
 values ('photos', 'photos', true)
 on conflict (id) do nothing;
 
-drop policy if exists "upload own photos" on storage.objects;
 create policy "upload own photos" on storage.objects for insert to authenticated
   with check (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
-drop policy if exists "update own photos" on storage.objects;
 create policy "update own photos" on storage.objects for update to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
-drop policy if exists "delete own photos" on storage.objects;
 create policy "delete own photos" on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = auth.uid()::text);
