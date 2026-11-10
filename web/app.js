@@ -361,6 +361,10 @@ function renderProfileForm(isNew) {
       <div class="field"><label for="bio">O mně</label><textarea class="input" id="bio" maxlength="500" placeholder="Co tě baví, co hledáš…">${esc(p.bio)}</textarea></div>
       <div class="field"><span class="lbl">Zájmy (max. 6)</span>
         <div class="chips" id="ints">${INTERESTS.map((i) => `<button type="button" class="chip" data-v="${esc(i)}" aria-pressed="${chosen.has(i)}">${esc(i)}</button>`).join('')}</div></div>
+      ${isNew ? `<label class="consent" for="consent">
+        <input type="checkbox" id="consent">
+        <span>Souhlasím se zpracováním údajů o mém pohlaví a o tom, koho hledám, aby mi Jiskra mohla ukazovat vhodné lidi. Souhlas můžu kdykoli odvolat smazáním účtu. <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">Zásady ochrany osobních údajů</a></span>
+      </label>` : ''}
       <button class="btn btn-primary" type="submit" style="margin:12px 0 calc(24px + var(--safe-b))">${isNew ? 'Začít objevovat' : 'Uložit změny'}</button>
     </form>
   </div>`;
@@ -387,6 +391,7 @@ function renderProfileForm(isNew) {
     if (!name) return toast('Vyplň jméno.');
     if (!birthdate) return toast('Vyplň datum narození.');
     if (ageOf(birthdate) < 18) return toast('Aplikace je jen pro lidi starší 18 let.');
+    if (isNew && !$('#consent').checked) return toast('Pro pokračování potvrď souhlas dole u tlačítka.');
     let minAge = Math.max(18, parseInt($('#minAge').value, 10) || 18);
     let maxAge = Math.min(99, parseInt($('#maxAge').value, 10) || 99);
     if (minAge > maxAge) [minAge, maxAge] = [maxAge, minAge];
@@ -862,13 +867,20 @@ function renderPremium() {
           <span class="small" style="color:#C9BCE0;font-weight:600">${PERIOD_LABEL[m]}</span>
           <span class="price">${C.PRICES[tier][m]}</span><span class="small muted">Kč / měsíc</span></button>`).join('')}
       </div>
-      <button class="btn btn-primary" data-act="buy" style="margin-top:22px">Pokračovat – ${total.toLocaleString('cs-CZ')} Kč${period > 1 ? ' za ' + PERIOD_LABEL[period] : ''}</button>
+      <label class="consent" for="waiver" style="margin-top:20px">
+        <input type="checkbox" id="waiver">
+        <span>Chci, aby mi placené funkce začaly hned po zaplacení, a beru na vědomí, že tím ztrácím právo odstoupit od smlouvy do 14 dnů. Souhlasím s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a>.</span>
+      </label>
+      <button class="btn btn-primary" data-act="buy" style="margin-top:14px">Pokračovat – ${total.toLocaleString('cs-CZ')} Kč${period > 1 ? ' za ' + PERIOD_LABEL[period] : ''}</button>
       <p class="small muted" style="text-align:center;margin:10px 0 24px">Předplatné se automaticky obnovuje. Zrušit ho můžeš kdykoli – v Google Play (Účet → Platby a předplatná) nebo ve správě předplatného.</p>
     </div></div>`;
 
   $$('#tiers button').forEach((b) => (b.onclick = () => { S.premiumTier = b.dataset.v; renderPremium(); }));
   $$('#periods button').forEach((b) => (b.onclick = () => { S.premiumPeriod = +b.dataset.v; renderPremium(); }));
-  $('[data-act=buy]').onclick = () => (inPlayApp() ? buyWithPlay(tier, period) : buyWithStripe(tier, period));
+  $('[data-act=buy]').onclick = () => {
+    if (!$('#waiver').checked) return toast('Nejdřív zaškrtni souhlas nad tlačítkem.');
+    return inPlayApp() ? buyWithPlay(tier, period) : buyWithStripe(tier, period);
+  };
   const restore = $('[data-act=restore]');
   if (restore) restore.onclick = restorePlay;
 }

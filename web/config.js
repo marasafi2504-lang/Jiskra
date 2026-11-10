@@ -25,6 +25,6 @@ export const PRICES = {
 };
 
 // Odkazy na právní dokumenty (povinné pro Google Play i App Store)
-export const TERMS_URL = '#';
-export const PRIVACY_URL = '#';
+export const TERMS_URL = 'podminky.html';
+export const PRIVACY_URL = 'soukromi.html';
 export const SUPPORT_EMAIL = 'podpora@example.com';
