@@ -4,7 +4,7 @@
 
 // Supabase → Project Settings → API
 export const SUPABASE_URL = 'https://itfcekypwboljvwyzfkg.supabase.co';
-export const SUPABASE_ANON_KEY = 'DOPLN-ANON-PUBLIC-KLIC';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0ZmNla3lwd2JvbGp2d3l6ZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMzk0MjUsImV4cCI6MjEwOTkxNTQyNX0.5xhst48-6yek7JliVjQ89qi3iQ1KY8AKZ9YrieTmhnc';
 
 // Stripe → Payment Links (jeden odkaz pro každý tarif a délku)
 // Prázdný odkaz = tlačítko zaplatit ukáže hlášku „Brzy dostupné“.
