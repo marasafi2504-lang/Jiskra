@@ -352,3 +352,6 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 
 .btn-sm { white-space: nowrap; }
 .msg.img { white-space: normal; }
+.like-tile.blur:nth-child(3n+1) { background: linear-gradient(160deg, #E8957A, #7A3C8C); }
+.like-tile.blur:nth-child(3n+2) { background: linear-gradient(160deg, #7FAEE0, #3C2C78); }
+.like-tile.blur:nth-child(3n) { background: linear-gradient(160deg, #E6A3C4, #5A2F86); }
