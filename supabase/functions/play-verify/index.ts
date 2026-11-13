@@ -5,7 +5,7 @@
 // Tajné hodnoty (Supabase → Edge Functions → Secrets):
 //   GOOGLE_SERVICE_ACCOUNT  = celý obsah JSON klíče servisního účtu (Google Cloud),
 //                             který má v Play Console oprávnění „Zobrazit finanční údaje“ a „Spravovat objednávky“
-//   ANDROID_PACKAGE         = název balíčku aplikace z PWABuilderu, např. cz.jiskra.app
+//   ANDROID_PACKAGE         = název balíčku aplikace: cz.msstudio.jiskra
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { importPKCS8, SignJWT } from "npm:jose@5";
@@ -49,8 +49,41 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: "not_signed_in" }, 401);
 
   const { sku, purchaseToken } = await req.json().catch(() => ({}));
+  if (!purchaseToken) return json({ error: "bad_request" }, 400);
+
+  // ---------- Boost Coiny (jednorázový spotřební nákup) ----------
+  const COIN_PACKS: Record<string, number> = {
+    jiskra_coins_1000: 1000, jiskra_coins_2500: 2750, jiskra_coins_5000: 5750, jiskra_coins_10000: 12000,
+  };
+  if (COIN_PACKS[String(sku)]) {
+    try {
+      const pkg = Deno.env.get("ANDROID_PACKAGE")!;
+      const token = await googleToken();
+      const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/products/${sku}/tokens/${encodeURIComponent(purchaseToken)}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return json({ error: "google_rejected", detail: await res.text() }, 400);
+      const buy = await res.json();
+      if (buy.purchaseState !== 0) return json({ error: "not_paid" }, 400); // 0 = zaplaceno
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const ref = "play:" + (buy.orderId || purchaseToken.slice(0, 200));
+      const { data: prev } = await admin.from("coin_ledger").select("user_id").eq("ref", ref).maybeSingle();
+      if (prev && prev.user_id !== user.id) return json({ error: "token_used" }, 409);
+      const { data: balance, error } = await admin.rpc("coins_add", { uid: user.id, delta: COIN_PACKS[sku], reason: "purchase", ref });
+      if (error) throw error;
+      // spotřebovat, aby šlo balíček koupit znovu (zároveň potvrdí nákup)
+      if (buy.consumptionState !== 1) {
+        await fetch(`${url}:consume`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      }
+      return json({ ok: true, coins: COIN_PACKS[sku], balance });
+    } catch (err) {
+      console.error(err);
+      return json({ error: "server_error" }, 500);
+    }
+  }
+
+  // ---------- Předplatné ----------
   const m = /^jiskra_(plus|gold|platinum)_(1|6|12)m$/.exec(String(sku ?? ""));
-  if (!m || !purchaseToken) return json({ error: "bad_request" }, 400);
+  if (!m) return json({ error: "bad_request" }, 400);
   const plan = m[1];
 
   try {

@@ -113,6 +113,9 @@ function errText(e) {
   if (m.includes('super_limit')) return 'Super Like ti tento týden došly.';
   if (m.includes('blocked')) return 'S tímhle člověkem už nemůžeš komunikovat.';
   if (m.includes('bad_media') || m.includes('bad_sticker')) return 'Tuhle přílohu nejde poslat.';
+  if (m.includes('not_enough_coins')) return 'Nemáš dost coinů.';
+  if (m.includes('nothing_to_reveal')) return 'Žádný další lajk k odhalení.';
+  if (m.includes('nothing_to_rewind')) return 'Není co vrátit.';
   if (m.includes('premium_required')) return 'Tahle funkce je v předplatném Gold.';
   if (m.includes('banned')) return 'Tvůj účet je zablokovaný.';
   if (m.includes('too_many_photos')) return 'Maximálně 6 fotek.';
@@ -213,6 +216,7 @@ const I = {
   mail: (o) => svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', o),
   key: (o) => svg('<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M17 5l2 2M15 7l2 2"/>', o),
   trash: (o) => svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', o),
+  coin: (o) => `<svg aria-hidden="true" width="${(o && o.size) || 24}" height="${(o && o.size) || 24}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#FBBF24"/><circle cx="12" cy="12" r="7.5" fill="#F59E0B"/><path d="M13 6.5L8.5 13h3l-.8 4.5L15.5 11h-3z" fill="#FFF7D6"/></svg>`,
   logout: (o) => svg('<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/>', o),
 };
 
@@ -298,6 +302,7 @@ async function loadMe() {
   ]);
   S.me = me || null;
   S.plan = sub && new Date(sub.valid_until) > new Date() ? sub.plan : null;
+  if (me) loadCoins();
   S.planUntil = sub ? sub.valid_until : null;
   if (S.me && !S.me.banned) {
     await loadMatches();
@@ -306,6 +311,30 @@ async function loadMe() {
     touchActive();
     refreshLocation(false);
   }
+}
+
+async function loadCoins() {
+  const { data, error } = await sb.rpc('my_coins');
+  if (!error) { S.coins = data || 0; $$('[data-coins]').forEach((el) => (el.textContent = fmtCoins(S.coins))); }
+  return S.coins || 0;
+}
+const fmtCoins = (n) => Number(n || 0).toLocaleString('cs-CZ');
+const coinChip = () => `<a class="coin-chip" href="#/coins" aria-label="Boost Coiny">${I.coin({ size: 18 })}<b data-coins>${fmtCoins(S.coins)}</b></a>`;
+
+// Zaplatit coiny: potvrzení, při nedostatku nabídne nákup
+async function payCoins(cost, what, rpc, args = {}) {
+  const have = await loadCoins();
+  if (have < cost) {
+    const ok = await dialog({ title: 'Nemáš dost coinů', text: `${what} stojí ${fmtCoins(cost)} coinů, máš ${fmtCoins(have)}. Chceš si coiny dokoupit?`, ok: 'Koupit coiny' });
+    if (ok) go('#/coins');
+    return null;
+  }
+  const ok = await dialog({ title: `${what} za ${fmtCoins(cost)} coinů?`, text: `Zůstatek po platbě: ${fmtCoins(have - cost)} coinů.`, ok: `Zaplatit ${fmtCoins(cost)} 🪙` });
+  if (!ok) return null;
+  const { data, error } = await sb.rpc(rpc, args);
+  if (error) { toast(errText(error)); return null; }
+  loadCoins();
+  return data ?? true;
 }
 
 async function loadMatches() {
@@ -433,6 +462,7 @@ async function route() {
     case 'verify': return renderVerify();
     case 'filters': return renderFilters();
     case 'settings': return renderSettings();
+    case 'coins': return renderCoins();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats') : go('#/profile');
     default: return renderDiscover();
   }
@@ -1065,9 +1095,10 @@ async function refreshBoostBtn() {
   b.classList.toggle('on', !!(st && st.active_until));
 }
 async function boostSheet() {
-  const { data } = await sb.rpc('boost_status');
+  const [{ data }] = await Promise.all([sb.rpc('boost_status'), loadCoins()]);
   const st = (data && data[0]) || { active_until: null, used: 0, allowed: 0 };
   const left = Math.max(0, st.allowed - st.used);
+  const cost = C.COIN_COSTS.boost;
   const mins = st.active_until ? Math.max(1, Math.round((new Date(st.active_until) - Date.now()) / 60000)) : 0;
   const w = sheet(`<div style="text-align:center">
       <div class="boost-hero">${I.bolt({ size: 40, fill: '#fff' })}</div>
@@ -1075,19 +1106,26 @@ async function boostSheet() {
       <p class="lead" style="font-size:15px">${st.active_until
         ? `Tvůj profil je teď na prvních místech ještě <b style="color:#fff">${mins} min</b>.`
         : 'Na 30 minut budeš mezi prvními profily, které lidé v okolí uvidí. Až 10× víc zobrazení.'}</p>
-      ${st.active_until ? '' : st.allowed
-        ? `<p class="small muted" style="margin:10px 0 16px">Zbývá ${left} z ${st.allowed} boostů na tento měsíc.</p>
-           <button class="btn btn-primary" data-go ${left ? '' : 'disabled'}>${I.bolt({ size: 18, fill: '#fff' })} Spustit Boost</button>`
-        : `<p class="small muted" style="margin:10px 0 16px">Boost je součástí předplatného Gold (1× měsíčně) a Platinum (3× měsíčně).</p>
-           <a class="btn btn-primary" href="#/premium">Získat Gold</a>`}
+      ${st.active_until ? '' : `<div class="sheet-btns">
+        ${left ? `<button class="btn btn-primary" data-free>${I.bolt({ size: 18, fill: '#fff' })} Spustit zdarma (${left}/${st.allowed} z předplatného)</button>` : ''}
+        <button class="btn ${left ? 'btn-outline' : 'btn-gold'}" data-coins-go>${I.coin({ size: 20 })} Spustit za ${fmtCoins(cost)} coinů</button>
+        <p class="small muted" style="margin:2px 0 0">Máš ${coinChip()} coinů${S.coins < cost ? ' · <a href="#/coins">dokoupit</a>' : ''}</p>
+        ${!st.allowed ? '<a class="link-btn" href="#/premium">Gold má 1 Boost měsíčně v ceně</a>' : ''}
+      </div>`}
     </div>`);
-  const g = $('[data-go]', w);
-  if (g) g.onclick = async () => {
-    g.disabled = true;
+  const done = (msg) => { w.remove(); toast(msg); refreshBoostBtn(); };
+  const f = $('[data-free]', w);
+  if (f) f.onclick = async () => {
+    f.disabled = true;
     const { error } = await sb.rpc('use_boost');
+    if (error) { f.disabled = false; return toast(String(error.message).includes('boost_active') ? 'Boost už běží.' : errText(error)); }
+    done('Boost spuštěn na 30 minut ⚡');
+  };
+  const c = $('[data-coins-go]', w);
+  if (c) c.onclick = async () => {
     w.remove();
-    if (error) return toast(String(error.message).includes('boost_active') ? 'Boost už běží.' : String(error.message).includes('boost_unavailable') ? 'Tento měsíc už jsi boosty vyčerpal(a).' : errText(error));
-    toast('Boost spuštěn na 30 minut ⚡'); refreshBoostBtn();
+    const r = await payCoins(cost, 'Boost', 'boost_with_coins');
+    if (r) { toast('Boost spuštěn na 30 minut ⚡'); refreshBoostBtn(); }
   };
 }
 
@@ -1195,6 +1233,16 @@ async function swipe(kind) {
   if (error) {
     S.candidates.unshift(p);
     setTimeout(drawDeck, 300);
+    if (String(error.message).includes('super_limit')) {
+      const done = await payCoins(C.COIN_COSTS.super, 'Super Like navíc', 'super_like_with_coins', { pid: p.id });
+      if (!done) return;
+      S.candidates = S.candidates.filter((c) => c.id !== p.id);
+      setTimeout(drawDeck, 50);
+      S.lastSwiped = p;
+      toast('Super Like odeslán ⭐');
+      checkMatch(p);
+      return;
+    }
     toast(errText(error), 3500);
     if (String(error.message).includes('like_limit')) setTimeout(() => go('#/premium'), 900);
     return;
@@ -1214,11 +1262,15 @@ async function checkMatch(p) {
 }
 
 async function rewind() {
-  if (!S.plan) { toast('Vrácení swipu je v předplatném Plus a vyšším.'); return go('#/premium'); }
   const p = S.lastSwiped;
   if (!p) return toast('Není co vrátit.');
-  const { error } = await sb.from('swipes').delete().eq('swiper', uid()).eq('swipee', p.id);
-  if (error) return toast(errText(error));
+  if (!S.plan) {
+    const done = await payCoins(C.COIN_COSTS.rewind, 'Vrácení swipu', 'rewind_with_coins', { pid: p.id });
+    if (!done) return;
+  } else {
+    const { error } = await sb.from('swipes').delete().eq('swiper', uid()).eq('swipee', p.id);
+    if (error) return toast(errText(error));
+  }
   S.lastSwiped = null;
   S.candidates.unshift(p);
   drawDeck();
@@ -1276,7 +1328,9 @@ async function renderLikes(tab = S.likesTab || 'likes') {
     openDetail(p, ['pass', 'super', 'like', 'report'], async (kind) => {
       if (kind === 'removed') return after();
       const { error: err } = await sb.from('swipes').insert({ swiper: uid(), swipee: p.id, kind });
-      if (err) { toast(errText(err), 3500); if (String(err.message).includes('like_limit')) go('#/premium'); return; }
+      if (err && String(err.message).includes('super_limit')) {
+        if (!(await payCoins(C.COIN_COSTS.super, 'Super Like navíc', 'super_like_with_coins', { pid: p.id }))) return;
+      } else if (err) { toast(errText(err), 3500); if (String(err.message).includes('like_limit')) go('#/premium'); return; }
       S.candidates = S.candidates.filter((c) => c.id !== p.id);
       if (kind !== 'pass') await checkMatch(p);
       after();
@@ -1287,12 +1341,23 @@ async function renderLikes(tab = S.likesTab || 'likes') {
 
   if (tab === 'likes') {
     if (!gold) {
-      const { data: count } = await sb.rpc('likes_me_count');
-      const n = count || 0;
+      const [{ data: count }, { data: shown }] = await Promise.all([sb.rpc('likes_me_count'), sb.rpc('revealed_likes_list'), loadCoins()]);
+      const n = count || 0, open = shown || [], hidden = Math.max(0, n - open.length);
       body.innerHTML = `
         <p class="lead" style="margin-bottom:18px">${n ? `Lajklo tě <b style="color:#fff">${n}</b> ${plural(n, 'člověk', 'lidi', 'lidí')}.` : 'Zatím tě nikdo nelajkl. Přidej víc fotek, otázky do profilu a ověř se – pomůže to.'}</p>
-        ${n ? `<div class="grid2" aria-hidden="true">${Array.from({ length: Math.min(n, 6) }, () => '<div class="like-tile blur"><div class="shade"></div></div>').join('')}</div>` : ''}
-        ${lock('Uvidíš je všechny s <span style="color:var(--gold)">Gold</span>', 'Stačí lajknout zpátky a máte shodu.')}`;
+        ${n ? `<div class="grid2">${open.map((p, i) => tile(p, i, p.compat != null ? `<small>💜 ${p.compat} %</small>` : '')).join('')}
+          ${Array.from({ length: Math.min(hidden, 6) }, () => '<div class="like-tile blur" aria-hidden="true"><div class="shade"></div></div>').join('')}</div>` : ''}
+        ${hidden ? `<button class="btn btn-outline reveal-btn" data-reveal>${I.coin({ size: 20 })} Odhalit 1 lajk za ${fmtCoins(C.COIN_COSTS.reveal)} coinů</button>
+          <p class="small muted" style="text-align:center;margin:6px 0 0">Máš ${coinChip()} coinů</p>` : ''}
+        ${hidden ? lock('Uvidíš je všechny s <span style="color:var(--gold)">Gold</span>', 'Stačí lajknout zpátky a máte shodu.') : ''}`;
+      $$('button.like-tile', body).forEach((b) => (b.onclick = () => openFull(open[+b.dataset.i], () => renderLikes('likes'))));
+      const rv = $('[data-reveal]', body);
+      if (rv) rv.onclick = async () => {
+        const who = await payCoins(C.COIN_COSTS.reveal, 'Odhalit lajk', 'reveal_like');
+        if (!who) return;
+        await renderLikes('likes');
+        toast('Lajk odhalen 💜 Lajkni zpátky a máte shodu.');
+      };
       return;
     }
     const { data, error } = await sb.rpc('likes_me_full');
@@ -1838,7 +1903,7 @@ async function renderProfile() {
             : `<b style="font-size:16px">Jiskra <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: '#C084FC' })}</a>
         <div class="quick-grid">
           <a href="#/filters">${I.sliders({ size: 22, color: '#C084FC' })}<span>Filtry</span></a>
-          <a href="#/likes" data-tab="views">${I.eye({ size: 22, color: '#C084FC' })}<span>Kdo mě viděl</span></a>
+          <a href="#/coins">${I.coin({ size: 22 })}<span data-coins>${fmtCoins(S.coins)}</span></a>
           <button type="button" data-boost>${I.bolt({ size: 22, fill: '#C084FC' })}<span>Boost</span></button>
           <a href="#/settings">${I.gear({ size: 22, color: '#C084FC' })}<span>Nastavení</span></a>
         </div>
@@ -1853,8 +1918,83 @@ async function renderProfile() {
   $('[data-preview]').onclick = () => openDetail(selfAsCard(), []);
   $('[data-share]').onclick = shareApp;
   $('[data-boost]').onclick = boostSheet;
-  $('[data-tab=views]').onclick = () => { S.likesTab = 'views'; };
   fillAds(app);
+}
+
+// ---------------------------------------------------------------------
+// Boost Coiny – obchod
+// ---------------------------------------------------------------------
+const COIN_REASON = { purchase: 'Nákup coinů', boost: 'Boost', super: 'Super Like', reveal: 'Odhalení lajku', rewind: 'Vrácení swipu', verify_bonus: 'Odměna za ověření', test: 'Úprava' };
+async function renderCoins() {
+  const inPlay = inPlayApp();
+  app.innerHTML = `${waves()}<div class="screen">
+    <div class="topbar"><button class="icon-btn" data-back aria-label="Zpět">${I.back({ size: 22 })}</button><h1 style="flex:1;text-align:center">Boost Coiny</h1><span style="width:44px"></span></div>
+    <div class="scroll pad" style="padding-top:4px">
+      <div class="coin-hero">${I.coin({ size: 54 })}<div><span class="small muted">Tvůj zůstatek</span><b data-coins>${fmtCoins(S.coins)}</b></div></div>
+      <p class="label-caps">Koupit coiny</p>
+      <div class="packs">${C.COIN_PACKS.map((k, i) => `<button class="pack" data-pack="${i}">
+          ${k.badge ? `<span class="pack-badge">${k.badge}</span>` : ''}
+          <span class="pack-ic">${I.coin({ size: 30 })}</span>
+          <b>${fmtCoins(k.coins)}</b>${k.bonus ? `<span class="pack-bonus">+${fmtCoins(k.bonus)} bonus</span>` : '<span class="pack-bonus" style="visibility:hidden">.</span>'}
+          <span class="pack-price" data-price="${k.sku}">${fmtCoins(k.price)} Kč</span></button>`).join('')}</div>
+      ${inPlay ? '' : '<p class="small muted" style="margin-top:8px">Coiny se kupují v aplikaci Jiskra z Google Play.</p>'}
+      <p class="label-caps" style="margin-top:22px">Za co je utratíš</p>
+      <div class="group">
+        <div class="settings-row"><span>${I.bolt({ size: 18, fill: '#C084FC' })} Boost na 30 minut</span><b class="cost">${fmtCoins(C.COIN_COSTS.boost)}</b></div>
+        <div class="settings-row"><span>${I.star({ size: 18, fill: '#60A5FA' })} Super Like navíc</span><b class="cost">${fmtCoins(C.COIN_COSTS.super)}</b></div>
+        <div class="settings-row"><span>${I.eye({ size: 18, color: '#C084FC' })} Odhalit, kdo tě lajkl</span><b class="cost">${fmtCoins(C.COIN_COSTS.reveal)}</b></div>
+        <div class="settings-row"><span>${I.undo({ size: 18, color: '#FBBF24' })} Vrátit swipe</span><b class="cost">${fmtCoins(C.COIN_COSTS.rewind)}</b></div>
+      </div>
+      <p class="label-caps" style="margin-top:22px">Získej zdarma</p>
+      <div class="group">
+        ${S.me.verified ? `<div class="settings-row"><span>${I.shield({ size: 18, color: '#34D399' })} Ověřený profil</span><span class="small muted">+${fmtCoins(C.COIN_VERIFY_BONUS)} ✓</span></div>`
+          : `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: '#C084FC' })} Ověř profil selfie</span><b class="cost plus">+${fmtCoins(C.COIN_VERIFY_BONUS)}</b></a>`}
+      </div>
+      <p class="label-caps" style="margin-top:22px">Historie</p>
+      <div class="group" id="hist"><div class="settings-row"><span class="muted">Načítám…</span></div></div>
+      ${inPlay ? '<button class="link-btn" data-restore style="display:block;margin:14px auto 0">Nepřipsaly se coiny? Obnovit nákupy</button>' : ''}
+      <p class="small muted" style="margin:16px 0 calc(24px + var(--safe-b))">Coiny jsou virtuální měna jen pro použití v Jiskře. Nedají se vyměnit za peníze ani převést jinému uživateli. Nevyužité coiny propadají při smazání účtu.</p>
+    </div></div>`;
+  $('[data-back]').onclick = () => (history.length > 1 ? history.back() : go('#/profile'));
+  $$('[data-pack]').forEach((b) => (b.onclick = () => buyCoins(C.COIN_PACKS[+b.dataset.pack])));
+  const rs = $('[data-restore]'); if (rs) rs.onclick = restorePlay;
+  loadCoins();
+  if (inPlay) {
+    try {
+      const service = await window.getDigitalGoodsService('https://play.google.com/billing');
+      const det = await service.getDetails(C.COIN_PACKS.map((k) => k.sku));
+      det.forEach((d) => { const el = $(`[data-price="${d.itemId}"]`); if (el) el.textContent = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: d.price.currency, maximumFractionDigits: 0 }).format(+d.price.value); });
+    } catch { /* ceny z configu */ }
+  }
+  const { data } = await sb.rpc('my_coin_history');
+  const h = $('#hist'); if (!h) return;
+  h.innerHTML = data && data.length ? data.map((x) => `<div class="settings-row"><span>${esc(COIN_REASON[x.reason] || x.reason)}<small>${timeLabel(x.created_at)}</small></span>
+      <b class="cost ${x.delta > 0 ? 'plus' : ''}">${x.delta > 0 ? '+' : '−'}${fmtCoins(Math.abs(x.delta))}</b></div>`).join('')
+    : '<div class="settings-row"><span class="muted">Zatím žádné pohyby.</span></div>';
+}
+
+async function buyCoins(pack) {
+  if (!inPlayApp()) return toast('Coiny koupíš v aplikaci Jiskra z Google Play.', 4000);
+  try {
+    const service = await window.getDigitalGoodsService('https://play.google.com/billing');
+    const [details] = await service.getDetails([pack.sku]);
+    if (!details) return toast('Tento balíček zatím není v Google Play dostupný.');
+    const request = new PaymentRequest(
+      [{ supportedMethods: 'https://play.google.com/billing', data: { sku: pack.sku } }],
+      { total: { label: 'Celkem', amount: { currency: details.price.currency, value: details.price.value } } },
+    );
+    const response = await request.show();
+    const { purchaseToken } = response.details;
+    const { data, error } = await sb.functions.invoke('play-verify', { body: { sku: pack.sku, purchaseToken } });
+    if (error) { await response.complete('fail'); return toast('Platbu se nepodařilo ověřit. Zkus „Obnovit nákupy“.', 4000); }
+    await response.complete('success');
+    await loadCoins();
+    toast(`Připsáno ${fmtCoins(data && data.coins)} coinů 🪙`);
+    if (currentView() === 'coins') renderCoins();
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    toast(errText(err));
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -2177,6 +2317,7 @@ function renderPremium() {
       <p class="script" style="font-size:28px">víc shod, méně čekání</p>
       <h1 style="font-size:34px;line-height:1.05;letter-spacing:-.03em">Vyber si své<br><span style="color:var(--accent)">předplatné</span></h1>
       ${S.plan ? `<p class="lead" style="margin-top:10px;font-size:14px">Teď máš <b>${planName[S.plan]}</b> do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}.</p>` : ''}
+      <a class="coin-banner" href="#/coins">${I.coin({ size: 26 })}<span><b>Jen Boost nebo Super Like?</b> Kup si Boost Coiny bez předplatného.</span>${I.chevron({ size: 18, color: '#FDE68A' })}</a>
       <div class="seg" role="group" aria-label="Tarif" style="margin-top:18px" id="tiers">
         ${Object.keys(TIERS).map((t) => `<button type="button" data-v="${t}" aria-pressed="${t === tier}">${planName[t]}</button>`).join('')}
       </div>
@@ -2244,11 +2385,11 @@ async function restorePlay() {
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
     const purchases = await service.listPurchases();
-    if (!purchases.length) return toast('Nenašli jsme žádné aktivní předplatné.');
+    if (!purchases.length) return toast('Nenašli jsme žádné nevyřízené nákupy.');
     for (const p of purchases) await sb.functions.invoke('play-verify', { body: { sku: p.itemId, purchaseToken: p.purchaseToken } });
     await loadMe();
-    toast(S.plan ? `Obnoveno: Jiskra ${planName[S.plan]}` : 'Předplatné už vypršelo.');
-    renderPremium();
+    toast(S.plan ? `Obnoveno: Jiskra ${planName[S.plan]}` : 'Nákupy zkontrolovány.');
+    if (currentView() === 'coins') renderCoins(); else renderPremium();
   } catch (err) { toast(errText(err)); }
 }
 
