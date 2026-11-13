@@ -1,6 +1,6 @@
 // Service worker – aplikace se rychle načte a funguje i při slabém signálu.
 // Při každé nové verzi aplikace zvyš číslo VERZE.
-const VERZE = 'jiskra-v5';
+const VERZE = 'jiskra-v6';
 const SOUBORY = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png'];
 
@@ -57,4 +57,12 @@ self.addEventListener('notificationclick', (e) => {
     }
     return self.clients.openWindow(url);
   }));
+});
+
+// Synchronizace na pozadí a pravidelná obnova (aplikace je při otevření hned aktuální)
+self.addEventListener('sync', (e) => {
+  if (e.tag === 'jiskra-sync') e.waitUntil(self.clients.matchAll().then((l) => l.forEach((c) => c.postMessage({ type: 'sync' }))));
+});
+self.addEventListener('periodicsync', (e) => {
+  if (e.tag === 'jiskra-refresh') e.waitUntil(caches.open(VERZE).then((c) => c.addAll(SOUBORY)).catch(() => {}));
 });

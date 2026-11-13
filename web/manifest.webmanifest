@@ -1,19 +1,38 @@
 {
   "name": "Jiskra – seznamka",
   "short_name": "Jiskra",
-  "description": "Seznamka s ověřenými profily a lidmi ve tvém okolí.",
+  "description": "Seznamka s ověřenými profily a lidmi ve tvém okolí. Objevuj, lajkuj, piš si a potkej svou jiskru.",
   "lang": "cs",
+  "dir": "ltr",
   "id": "./",
-  "start_url": "./",
+  "start_url": "./?utm_source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0B0614",
   "theme_color": "#0B0614",
-  "categories": ["social", "lifestyle"],
+  "categories": ["social", "lifestyle", "dating"],
+  "prefer_related_applications": false,
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "handle_links": "preferred",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "screenshots": [
+    { "src": "screenshots/objevuj.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Objevuj lidi ve svém okolí" },
+    { "src": "screenshots/zpravy.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Zprávy a shody" },
+    { "src": "screenshots/chat.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Chat, hlasové zprávy a videohovory" },
+    { "src": "screenshots/profil.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Tvůj profil" },
+    { "src": "screenshots/premium.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Předplatné Plus, Gold a Platinum" },
+    { "src": "screenshots/coiny.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Boost Coins" }
+  ],
+  "shortcuts": [
+    { "name": "Objevuj", "short_name": "Objevuj", "url": "./#/discover", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Zprávy", "short_name": "Zprávy", "url": "./#/chats", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Kdo mě lajkl", "short_name": "Lajky", "url": "./#/likes", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }
