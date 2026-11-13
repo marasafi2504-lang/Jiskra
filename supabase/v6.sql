@@ -112,13 +112,14 @@ begin
         'url', './#/admin/support', 'tag', 'support-' || new.user_id));
     end loop;
   end if;
+  -- E-mail přes Resend: kvůli GDPR bez jména, e-mailu i obsahu zprávy – jen upozornění
   if rkey is not null then
     perform net.http_post(url := 'https://api.resend.com/emails',
       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || rkey),
       body := jsonb_build_object('from', 'Jiskra <onboarding@resend.dev>', 'to', jsonb_build_array(remail),
-        'subject', 'Jiskra – podpora: ' || coalesce(sname, 'uživatel'),
-        'text', coalesce(sname, 'Uživatel') || ' (' || new.user_id || ') napsal(a):' || chr(10) || chr(10) || new.body ||
-                chr(10) || chr(10) || 'Odpovědět můžeš v aplikaci: Profil → Administrace → Podpora.'));
+        'subject', 'Jiskra – nová zpráva podpoře',
+        'text', 'V aplikaci Jiskra čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
+                'Přečteš si ji a odpovíš v aplikaci: Profil → Administrace → Podpora.'));
   end if;
   return new;
 exception when others then return new;
