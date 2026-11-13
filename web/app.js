@@ -1,5 +1,5 @@
 // =====================================================================
-// Jiskra – seznamka (PWA) · verze 2
+// Jiskra – seznamka (PWA) · verze 3
 // =====================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import * as C from './config.js';
@@ -89,6 +89,14 @@ function timeLabel(iso) {
   return d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
 }
 
+function msgPreview(m) {
+  const t = m.media_type || m.kind;
+  if (t === 'audio') return '🎤 Hlasová zpráva';
+  if (t === 'sticker') return '✨ Nálepka';
+  if (t === 'image' || t === 'photo') return '📷 Fotka';
+  return String(m.body || '').slice(0, 60);
+}
+
 const store = {
   get(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* nic */ } },
@@ -103,6 +111,8 @@ function errText(e) {
   if (m.includes('under_18')) return 'Aplikace je jen pro lidi starší 18 let.';
   if (m.includes('like_limit')) return 'Dnešní lajky došly. S předplatným jsou neomezené.';
   if (m.includes('super_limit')) return 'Super Like ti tento týden došly.';
+  if (m.includes('blocked')) return 'S tímhle člověkem už nemůžeš komunikovat.';
+  if (m.includes('bad_media') || m.includes('bad_sticker')) return 'Tuhle přílohu nejde poslat.';
   if (m.includes('premium_required')) return 'Tahle funkce je v předplatném Gold.';
   if (m.includes('banned')) return 'Tvůj účet je zablokovaný.';
   if (m.includes('too_many_photos')) return 'Maximálně 6 fotek.';
@@ -185,7 +195,60 @@ const I = {
   gear: (o) => svg('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/>', o),
   eye: (o) => svg('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', o),
   plus: (o) => svg('<path d="M12 5v14M5 12h14"/>', o),
+  bolt: (o) => svg('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', o),
+  mic: (o) => svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', o),
+  video: (o) => svg('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>', o),
+  phoneOff: (o) => svg('<path d="M3 15c5-5 13-5 18 0l-2 3-4-1v-3c-2-.7-4-.7-6 0v3l-4 1z"/>', o),
+  smile: (o) => svg('<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5v.5M15 9.5v.5"/>', o),
+  ban: (o) => svg('<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>', o),
+  lock: (o) => svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', o),
+  ruler: (o) => svg('<path d="M4 17L17 4l3 3L7 20z"/><path d="M8 13l2 2M11 10l2 2M14 7l2 2"/>', o),
+  cap: (o) => svg('<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/>', o),
+  target: (o) => svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>', o),
+  glass: (o) => svg('<path d="M7 3h10l-1 8a4 4 0 0 1-8 0zM12 15v6M8 21h8"/>', o),
+  smoke: (o) => svg('<path d="M3 16h14v3H3zM19 16v3M21 16v3M18 13c0-2 2-2 2-4s-2-2-2-4"/>', o),
+  baby: (o) => svg('<circle cx="12" cy="7" r="4"/><path d="M6 21c0-4 3-7 6-7s6 3 6 7"/>', o),
+  pray: (o) => svg('<path d="M12 3v18M7 8h10"/>', o),
+  pause: (o) => svg('<path d="M9 5v14M15 5v14"/>', o),
+  mail: (o) => svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>', o),
+  key: (o) => svg('<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M17 5l2 2M15 7l2 2"/>', o),
+  trash: (o) => svg('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>', o),
+  logout: (o) => svg('<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/>', o),
 };
+
+// Detaily profilu (hodnoty odpovídají kontrolám v databázi)
+const GOALS = { vztah: 'Vážný vztah', neco_volneho: 'Něco volnějšího', pratelstvi: 'Přátelství', nevim: 'Ještě nevím' };
+const EDU = { zakladni: 'Základní', stredni: 'Střední', vysoka: 'Vysoká škola', student: 'Studuji' };
+const SMOKE = { ne: 'Nekouřím', obcas: 'Příležitostně', ano: 'Kouřím' };
+const DRINK = { ne: 'Nepiju', obcas: 'Příležitostně', ano: 'Rád(a) si dám' };
+const KIDS = { nemam_chci: 'Nemám, ale chci', nemam_nechci: 'Nemám a nechci', mam: 'Mám děti', nevim: 'Ještě nevím' };
+const RELIGION = { zadne: 'Bez vyznání', krestanstvi: 'Křesťanství', jine: 'Jiné', nechci_rict: 'Nechci říct' };
+const DETAILS = [
+  ['goal', 'Co hledám', GOALS, 'target'], ['education', 'Vzdělání', EDU, 'cap'], ['smoking', 'Kouření', SMOKE, 'smoke'],
+  ['drinking', 'Alkohol', DRINK, 'glass'], ['kids', 'Děti', KIDS, 'baby'], ['religion', 'Víra', RELIGION, 'pray'],
+];
+
+// Poskytovatelé přihlášení – zobrazí se jen ty, které jsou zapnuté v Supabase
+const PROVIDERS = {
+  google: { name: 'Google', cls: 'g', icon: '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>' },
+  facebook: { name: 'Facebook', cls: 'fb', icon: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M14 8h3V4h-3c-2.8 0-4 1.7-4 4.3V10H7v4h3v8h4v-8h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg>' },
+  apple: { name: 'Apple', cls: 'apple', icon: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#000" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4 8 3 9.8c-2 3.5-.5 8.6 1.4 11.4.9 1.4 2 2.9 3.5 2.8 1.4-.1 1.9-.9 3.6-.9s2.1.9 3.6.9c1.5 0 2.4-1.4 3.3-2.7 1-1.6 1.5-3.1 1.5-3.2-.1 0-2.5-1-2.5-3.5zM13.8 4.9c.8-.9 1.3-2.2 1.2-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.2 3.3 1.2.1 2.4-.6 3.2-1.5z"/></svg>' },
+  azure: { name: 'Microsoft', cls: 'ms', icon: '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#F25022" d="M2 2h9.5v9.5H2z"/><path fill="#7FBA00" d="M12.5 2H22v9.5h-9.5z"/><path fill="#00A4EF" d="M2 12.5h9.5V22H2z"/><path fill="#FFB900" d="M12.5 12.5H22V22h-9.5z"/></svg>' },
+  discord: { name: 'Discord', cls: 'dc', icon: '' }, twitter: { name: 'X (Twitter)', cls: 'x', icon: '' },
+  spotify: { name: 'Spotify', cls: 'sp', icon: '' }, linkedin_oidc: { name: 'LinkedIn', cls: 'li', icon: '' },
+  twitch: { name: 'Twitch', cls: 'tw', icon: '' }, github: { name: 'GitHub', cls: 'gh', icon: '' },
+};
+const PROVIDER_ORDER = ['google', 'facebook', 'apple', 'azure', 'twitter', 'discord', 'spotify', 'linkedin_oidc', 'twitch', 'github'];
+let enabledProviders = null;
+async function loadProviders() {
+  if (enabledProviders) return enabledProviders;
+  try {
+    const r = await fetch(`${C.SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: C.SUPABASE_ANON_KEY } });
+    const j = await r.json();
+    enabledProviders = PROVIDER_ORDER.filter((k) => j.external && j.external[k]);
+  } catch { enabledProviders = (C.AUTH_PROVIDERS || []).slice(); }
+  return enabledProviders;
+}
 const verifiedBadge = (size = 22) =>
   `<svg role="img" aria-label="Ověřený profil" width="${size}" height="${size}" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" fill="#A855F7" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const logo = (size = 40) => `<div class="logo-mark" style="width:${size}px;height:${size}px">${I.flame({ size: Math.round(size * 0.55), color: '#fff' })}</div>`;
@@ -239,13 +302,14 @@ async function loadMe() {
   if (S.me && !S.me.banned) {
     await loadMatches();
     subscribeGlobal();
+    subscribeRing();
     touchActive();
     refreshLocation(false);
   }
 }
 
 async function loadMatches() {
-  const { data, error } = await sb.rpc('my_matches2');
+  const { data, error } = await sb.rpc('my_matches3');
   if (!error) S.matches = data || [];
 }
 
@@ -340,7 +404,7 @@ function subscribeGlobal() {
       await loadMatches();
       if (p.new.sender !== uid()) {
         const m = S.matches.find((x) => x.match_id === p.new.match_id);
-        toast(`${m ? m.name : 'Nová zpráva'}: ${p.new.kind === 'image' ? '📷 fotka' : p.new.body.slice(0, 60)}`);
+        toast(`${m ? m.name : 'Nová zpráva'}: ${msgPreview(p.new)}`);
       }
       if (currentView() === 'chats') renderChats(); else updateTabbar();
     })
@@ -352,7 +416,7 @@ function subscribeGlobal() {
 // ---------------------------------------------------------------------
 async function route() {
   if (S.chatChannel) { sb.removeChannel(S.chatChannel); S.chatChannel = null; }
-  $$('.sheet-wrap, .overlay, .detail').forEach((el) => el.remove());
+  $$('.sheet-wrap, .overlay:not(.call-in), .detail').forEach((el) => el.remove());
   window.scrollTo(0, 0);
   if (!configured) return renderSetup();
   if (!S.session) return renderAuth();
@@ -367,6 +431,8 @@ async function route() {
     case 'edit': return renderEdit();
     case 'premium': return renderPremium();
     case 'verify': return renderVerify();
+    case 'filters': return renderFilters();
+    case 'settings': return renderSettings();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats') : go('#/profile');
     default: return renderDiscover();
   }
@@ -409,8 +475,7 @@ function renderAuth(mode = 'welcome') {
       </div>
       <div style="flex:1;min-height:28px"></div>
       <div style="display:flex;flex-direction:column;gap:12px">
-        ${(C.AUTH_PROVIDERS || []).includes('google') ? '<button class="btn btn-social" data-oauth="google">Pokračovat přes Google</button>' : ''}
-        ${(C.AUTH_PROVIDERS || []).includes('facebook') ? '<button class="btn btn-social fb" data-oauth="facebook">Pokračovat přes Facebook</button>' : ''}
+        <div id="socials" style="display:flex;flex-direction:column;gap:12px"></div>
         <button class="btn btn-primary" data-act="signup">Pokračovat e-mailem ${I.arrow({ size: 18, color: '#fff' })}</button>
         <button class="link-btn" data-act="signin" style="align-self:center">Už mám účet s e-mailem – přihlásit se</button>
         <p class="small muted" style="text-align:center;margin:6px 0 0">Pokračováním souhlasíš s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a> a <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">zásadami ochrany soukromí</a>. Jen pro 18+.</p>
@@ -418,7 +483,11 @@ function renderAuth(mode = 'welcome') {
     </div>`;
     $('[data-act=signup]').onclick = () => renderAuth('signup');
     $('[data-act=signin]').onclick = () => renderAuth('signin');
-    $$('[data-oauth]').forEach((b) => (b.onclick = () => oauth(b.dataset.oauth)));
+    loadProviders().then((list) => {
+      const box = $('#socials'); if (!box) return;
+      box.innerHTML = list.map((k) => `<button class="btn btn-social ${PROVIDERS[k].cls}" data-oauth="${k}">${PROVIDERS[k].icon}<span>Pokračovat přes ${PROVIDERS[k].name}</span></button>`).join('');
+      $$('[data-oauth]', box).forEach((b) => (b.onclick = () => oauth(b.dataset.oauth)));
+    });
     return;
   }
   const signup = mode === 'signup';
@@ -474,10 +543,13 @@ function renderAuth(mode = 'welcome') {
 }
 
 async function oauth(provider) {
-  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname } });
+  const opts = { redirectTo: location.origin + location.pathname };
+  if (provider === 'facebook') opts.scopes = 'email,public_profile';
+  const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });
   if (error) {
     const m = String(error.message || '');
-    toast(/not enabled|Unsupported provider/i.test(m) ? `Přihlášení přes ${provider === 'google' ? 'Google' : 'Facebook'} zatím není zapnuté. Použij e-mail.` : errText(error), 4000);
+    const n = (PROVIDERS[provider] || { name: provider }).name;
+    toast(/not enabled|Unsupported provider/i.test(m) ? `Přihlášení přes ${n} zatím není zapnuté. Použij e-mail.` : errText(error), 4000);
   }
 }
 
@@ -617,11 +689,30 @@ function bindChips(chosen) {
   }));
 }
 
+// Detaily profilu (výška, cíl, vzdělání…) – výběr z možností, dalším klepnutím zrušíš
+function detailsEditorHTML(v) {
+  return `<div class="field"><label for="d-height">Výška: <b id="d-heightv">${v.height_cm ? v.height_cm + ' cm' : 'neuvedeno'}</b></label>
+      <input type="range" class="range" id="d-height" min="140" max="210" value="${v.height_cm || 175}"></div>
+    ${DETAILS.map(([k, label, opts]) => `<div class="field"><span class="lbl">${label}</span>
+      <div class="chips" data-detail="${k}">${Object.entries(opts).map(([ok, ov]) => `<button type="button" class="chip" data-v="${ok}" aria-pressed="${v[k] === ok}">${ov}</button>`).join('')}</div></div>`).join('')}`;
+}
+function bindDetails(root, v) {
+  const h = $('#d-height', root);
+  if (h) h.oninput = () => { v.height_cm = +h.value; $('#d-heightv', root).textContent = h.value + ' cm'; };
+  $$('[data-detail]', root).forEach((g) => $$('button', g).forEach((b) => (b.onclick = () => {
+    const k = g.dataset.detail; v[k] = v[k] === b.dataset.v ? null : b.dataset.v;
+    $$('button', g).forEach((x) => x.setAttribute('aria-pressed', x.dataset.v === v[k]));
+  })));
+}
+const pickDetails = (v) => ({ height_cm: v.height_cm || null, goal: v.goal || null, education: v.education || null, smoking: v.smoking || null,
+  drinking: v.drinking || null, kids: v.kids || null, religion: v.religion || null });
+
 // ---------------------------------------------------------------------
 // Průvodce registrací (6 kroků)
 // ---------------------------------------------------------------------
 const W = { step: 0, name: '', birthdate: '', gender: 'muz', looking_for: 'zeny', mode: 'laska', min_age: 18, max_age: 45,
-  photos: [], bio: '', city: '', job: '', interests: new Set(), prompts: [], personality: null, lat: null, lng: null, consent: false };
+  photos: [], bio: '', city: '', job: '', interests: new Set(), prompts: [], personality: null, lat: null, lng: null, consent: false,
+  height_cm: null, goal: null, education: null, smoking: null, drinking: null, kids: null, religion: null };
 
 function renderWizard() {
   if (!W.name && S.session) {
@@ -657,7 +748,8 @@ function renderWizard() {
     <div class="field"><label for="w-bio">O mně</label><textarea class="input" id="w-bio" maxlength="500" placeholder="Co tě baví, co hledáš…">${esc(W.bio)}</textarea></div>
     <div class="row"><div class="field"><label for="w-city">Město</label><input class="input" id="w-city" maxlength="60" value="${esc(W.city)}" placeholder="Praha"></div>
       <div class="field"><label for="w-job">Práce / škola</label><input class="input" id="w-job" maxlength="60" value="${esc(W.job)}"></div></div>
-    <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(W.interests)}</div>`;
+    <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(W.interests)}</div>
+    <p class="label-caps" style="margin-top:18px">Detaily (nepovinné)</p><div id="w-details">${detailsEditorHTML(W)}</div>`;
   if (n === 4) body = `
     <p class="script">prolom ledy</p><h1 class="wiz-h">Tvoje osobnost</h1>
     <div class="field"><span class="lbl">Otázky v profilu (nepovinné, max. 3)</span><div id="w-prompts">${promptsEditorHTML(W.prompts)}</div></div>
@@ -705,7 +797,7 @@ function renderWizard() {
     bindSeg('w-look', (v) => (W.looking_for = v));
   }
   if (n === 2) { const rr = () => { $('#w-photos').innerHTML = photoGridHTML(W.photos); bindPhotoGrid($('#w-photos'), W.photos, rr); }; bindPhotoGrid($('#w-photos'), W.photos, rr); }
-  if (n === 3) bindChips(W.interests);
+  if (n === 3) { bindChips(W.interests); bindDetails($('#w-details'), W); }
   if (n === 4) {
     const rr = () => { $('#w-prompts').innerHTML = promptsEditorHTML(W.prompts); bindPrompts($('#w-prompts'), W.prompts, rr); };
     bindPrompts($('#w-prompts'), W.prompts, rr);
@@ -734,7 +826,7 @@ function renderWizard() {
       const row = { id: uid(), name: W.name, birthdate: W.birthdate, gender: W.gender, looking_for: W.mode === 'pratele' ? 'vsechny' : W.looking_for,
         mode: W.mode, min_age: W.min_age, max_age: W.max_age, photos: W.photos, photo_url: W.photos[0] || null, bio: W.bio, city: W.city, job: W.job,
         interests: [...W.interests], prompts: W.prompts.filter((p) => p.a && p.a.trim()).map((p) => ({ q: p.q, a: p.a.trim().slice(0, 150) })),
-        personality: W.personality, lat: W.lat, lng: W.lng };
+        personality: W.personality, lat: W.lat, lng: W.lng, ...pickDetails(W) };
       const { error } = await sb.from('profiles').insert(row);
       if (error) throw error;
       await loadMe();
@@ -751,7 +843,7 @@ function renderWizard() {
 function renderEdit() {
   const p = S.me;
   const E = { photos: [...(p.photos && p.photos.length ? p.photos : p.photo_url ? [p.photo_url] : [])], prompts: (p.prompts || []).map((x) => ({ ...x })),
-    personality: p.personality, interests: new Set(p.interests || []), gender: p.gender, looking_for: p.looking_for, mode: p.mode || 'laska' };
+    personality: p.personality, interests: new Set(p.interests || []), gender: p.gender, looking_for: p.looking_for, mode: p.mode || 'laska', ...pickDetails(p) };
   app.innerHTML = `${waves()}<div class="screen">
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Upravit profil</h1><span style="width:44px"></span></div>
     <form id="ef" class="scroll pad" style="padding-top:6px" novalidate>
@@ -762,6 +854,7 @@ function renderEdit() {
       <div class="row"><div class="field"><label for="e-city">Město</label><input class="input" id="e-city" maxlength="60" value="${esc(p.city)}"></div>
         <div class="field"><label for="e-job">Práce / škola</label><input class="input" id="e-job" maxlength="60" value="${esc(p.job)}"></div></div>
       <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(E.interests)}</div>
+      <p class="label-caps" style="margin-top:20px">Detaily</p><div id="e-details">${detailsEditorHTML(E)}</div>
       <p class="label-caps" style="margin-top:20px">Otázky v profilu</p><div id="e-prompts">${promptsEditorHTML(E.prompts)}</div>
       <p class="label-caps" style="margin-top:24px">Typ osobnosti</p><div id="e-pers">${personalityPickerHTML(E.personality)}</div>
       <p class="label-caps" style="margin-top:24px">Koho hledám</p>
@@ -781,6 +874,7 @@ function renderEdit() {
   const rrQ = () => { $('#e-prompts').innerHTML = promptsEditorHTML(E.prompts); bindPrompts($('#e-prompts'), E.prompts, rrQ); }; rrQ();
   bindPersonality($('#e-pers'), () => E.personality, (t) => (E.personality = t));
   bindChips(E.interests);
+  bindDetails($('#e-details'), E);
   bindSeg('e-mode', (v) => { E.mode = v; $('#e-lookwrap').hidden = v === 'pratele'; });
   bindSeg('e-gender', (v) => (E.gender = v));
   bindSeg('e-look', (v) => (E.looking_for = v));
@@ -797,7 +891,7 @@ function renderEdit() {
     const row = { name, bio: $('#e-bio').value.trim(), city: $('#e-city').value.trim(), job: $('#e-job').value.trim(),
       interests: [...E.interests], photos: E.photos, photo_url: E.photos[0], personality: E.personality, mode: E.mode, gender: E.gender,
       looking_for: E.mode === 'pratele' ? 'vsechny' : E.looking_for, min_age: minAge, max_age: maxAge, max_distance_km: +$('#e-dist').value,
-      prompts: E.prompts.filter((x) => x.a && x.a.trim()).map((x) => ({ q: x.q, a: x.a.trim().slice(0, 150) })) };
+      prompts: E.prompts.filter((x) => x.a && x.a.trim()).map((x) => ({ q: x.q, a: x.a.trim().slice(0, 150) })), ...pickDetails(E) };
     const { error } = await sb.from('profiles').update(row).eq('id', uid());
     btn.disabled = false;
     if (error) return toast(errText(error));
@@ -815,7 +909,9 @@ function badgesHTML(p) {
   const b = [];
   if (p.distance_km != null) b.push(`<span class="badge-chip">${I.pin({ size: 13, color: '#C084FC' })}${p.distance_km} km</span>`);
   if (p.compat != null) b.push(`<span class="badge-chip hot">💜 ${p.compat} %</span>`);
+  if (p.goal && GOALS[p.goal]) b.push(`<span class="badge-chip">${I.target({ size: 12, color: '#C084FC' })}${GOALS[p.goal]}</span>`);
   if (p.personality) b.push(`<span class="badge-chip">${esc(p.personality)}</span>`);
+  if (p.height_cm) b.push(`<span class="badge-chip">${p.height_cm} cm</span>`);
   if (p.zodiac) b.push(`<span class="badge-chip">${I.moon({ size: 12, color: '#C084FC' })}${esc(p.zodiac)}</span>`);
   if (p.mode === 'pratele') b.push('<span class="badge-chip">Hledá přátele</span>');
   return b.join('');
@@ -826,6 +922,7 @@ function cardHTML(p, back = false) {
   return `<article class="card ${back ? 'back' : ''}" data-id="${esc(p.id)}" aria-label="${esc(p.name)}, ${esc(p.age)} let">
     <div class="card-photo" style="${bgImg(photos[0])}">${photos.length ? '' : `<div class="placeholder">${I.user({ size: 120, color: '#6D3FC0', sw: 1 })}</div>`}</div>
     ${photos.length > 1 ? `<div class="pbars">${photos.map((_, i) => `<span class="${i === 0 ? 'on' : ''}"></span>`).join('')}</div>` : ''}
+    ${p.boosted ? `<span class="boost-badge">${I.bolt({ size: 12, fill: '#1a0b2e' })} Boost</span>` : ''}
     ${p.super_liked_me ? `<span class="super-badge">${I.star({ size: 12, fill: '#08142B' })} Dal(a) ti Super Like</span>` : ''}
     <span class="stamp like">LÍBÍ</span><span class="stamp nope">NE</span>
     <div class="info">
@@ -848,6 +945,9 @@ function detailHTML(p, actions) {
     <div class="meta" style="margin-top:10px">${p.job ? `<span>${I.bag({ size: 15, color: '#C084FC' })}${esc(p.job)}</span>` : ''}${p.city ? `<span>${I.pin({ size: 15, color: '#C084FC' })}${esc(p.city)}</span>` : ''}</div></div>`);
   if (prompts[0]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[0].q)}</div><div class="pa">${esc(prompts[0].a)}</div></div>`);
   if (photos[1]) blocks.push(`<div class="d-photo" style="${bgImg(photos[1])}"></div>`);
+  const facts = [p.height_cm ? [I.ruler, `${p.height_cm} cm`] : null,
+    ...DETAILS.filter(([k, , o]) => p[k] && o[p[k]]).map(([k, , o, ic]) => [I[ic], o[p[k]]])].filter(Boolean);
+  if (facts.length) blocks.push(`<div class="d-sec"><p class="label-caps">Základní info</p><div class="facts">${facts.map(([ic, t]) => `<span>${ic({ size: 16, color: '#C084FC' })}${esc(t)}</span>`).join('')}</div></div>`);
   if (p.bio) blocks.push(`<div class="d-sec"><p class="label-caps">O mně</p><p class="lead" style="font-size:15px;white-space:pre-wrap">${esc(p.bio)}</p></div>`);
   if (prompts[1]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[1].q)}</div><div class="pa">${esc(prompts[1].a)}</div></div>`);
   if (photos[2]) blocks.push(`<div class="d-photo" style="${bgImg(photos[2])}"></div>`);
@@ -859,7 +959,7 @@ function detailHTML(p, actions) {
   return `<div class="detail" role="dialog" aria-modal="true" aria-label="Profil ${esc(p.name)}">
     <button class="icon-btn d-close" data-close aria-label="Zavřít">${I.x({ size: 22, color: '#fff' })}</button>
     <div class="d-scroll">${blocks.join('')}
-      ${actions && actions.includes('report') ? `<button class="link-btn" data-report style="display:block;margin:10px auto 0;color:#FCA5A5">Nahlásit ${esc(p.name)}</button>` : ''}
+      ${actions && actions.includes('report') ? `<div class="d-safety"><button class="link-btn" data-block>${I.ban({ size: 16, color: '#FCA5A5' })} Blokovat</button><button class="link-btn" data-report>Nahlásit ${esc(p.name)}</button></div>` : ''}
       <div style="height:${actions && actions.some((a) => a !== 'report') ? 120 : 30}px"></div></div>
     ${actions && actions.some((a) => a !== 'report') ? `<div class="d-actions">
       ${actions.includes('pass') ? `<button class="round lg" data-k="pass" aria-label="Přeskočit">${I.x({ size: 26, color: '#F87171', sw: 2.6 })}</button>` : ''}
@@ -878,7 +978,10 @@ function openDetail(p, actions = [], onAction = null) {
   $('[data-close]', el).onclick = close;
   $$('[data-k]', el).forEach((b) => (b.onclick = () => { close(); if (onAction) onAction(b.dataset.k); }));
   const rep = $('[data-report]', el);
-  if (rep) rep.onclick = async () => { close(); await reportUser(p.id, p.name); };
+  if (rep) rep.onclick = async () => { close(); if (await reportUser(p.id, p.name) && onAction) onAction('removed'); };
+  const blk = $('[data-block]', el);
+  if (blk) blk.onclick = async () => { close(); if (await blockUser(p.id, p.name) && onAction) onAction('removed'); };
+  if (S.me && p.id !== S.me.id) sb.rpc('record_view', { pid: p.id }).then(() => {});
   return el;
 }
 
@@ -895,6 +998,18 @@ async function reportUser(id, name, matchId = null) {
   return true;
 }
 
+async function blockUser(id, name, matchId = null) {
+  const ok = await dialog({ title: `Blokovat ${name}?`, text: 'Už se navzájem neuvidíte a nebudete si moct psát. Odblokovat jde v Nastavení.', ok: 'Blokovat', danger: true });
+  if (!ok) return false;
+  const { error } = await sb.from('blocks').insert({ blocker: uid(), blocked: id });
+  if (error && !String(error.message).includes('duplicate')) { toast(errText(error)); return false; }
+  if (matchId) await sb.from('matches').delete().eq('id', matchId);
+  S.candidates = S.candidates.filter((c) => c.id !== id);
+  await loadMatches();
+  toast(`${name} je zablokován(a).`);
+  return true;
+}
+
 function selfAsCard() {
   const m = S.me;
   return { ...m, age: ageOf(m.birthdate), zodiac: zodiacOf(m.birthdate), photos: m.photos && m.photos.length ? m.photos : m.photo_url ? [m.photo_url] : [], distance_km: null, compat: null, active_recently: true };
@@ -906,7 +1021,7 @@ function selfAsCard() {
 async function fetchCandidates() {
   if (S.loadingCandidates) return;
   S.loadingCandidates = true;
-  const { data, error } = await sb.rpc('discover', { lim: 20 });
+  const { data, error } = await sb.rpc('discover3', { lim: 20 });
   S.loadingCandidates = false;
   if (error) { toast(errText(error)); return; }
   const have = new Set(S.candidates.map((c) => c.id));
@@ -919,10 +1034,12 @@ async function renderDiscover() {
     <div class="topbar">
       <div class="brand">${logo(36)}<h1>Objevuj</h1></div>
       <div class="actions">
+        <button class="icon-btn boost-btn" id="boostBtn" aria-label="Boost – zviditelnit profil">${I.bolt({ size: 20, fill: '#C084FC' })}</button>
         <a class="icon-btn" href="#/premium" aria-label="Předplatné">${I.crown({ size: 20, color: '#FBBF24' })}</a>
-        <a class="icon-btn" href="#/edit" aria-label="Koho hledám – filtry">${I.sliders({ size: 20, color: '#fff' })}</a>
+        <a class="icon-btn" href="#/filters" aria-label="Filtry">${I.sliders({ size: 20, color: '#fff' })}</a>
       </div>
     </div>
+    ${S.me.paused ? `<a class="pause-note" href="#/settings">${I.pause({ size: 16, color: '#FBBF24' })} Profil je pozastavený – ostatní tě nevidí. Zapnout</a>` : ''}
     <div class="deck" id="deck"><div class="empty"><div class="spinner"></div></div></div>
     <div class="swipe-actions" id="actions">
       <button class="round md" data-k="undo" aria-label="Vrátit poslední">${I.undo({ size: 22, color: '#FBBF24' })}</button>
@@ -933,8 +1050,55 @@ async function renderDiscover() {
     ${tabbar('discover')}
   </div>`;
   $$('#actions button').forEach((b) => (b.onclick = () => (b.dataset.k === 'undo' ? rewind() : swipe(b.dataset.k))));
+  $('#boostBtn').onclick = boostSheet;
+  refreshBoostBtn();
   if (S.candidates.length < 3) await fetchCandidates();
   drawDeck();
+}
+
+// ---------- Boost ----------
+async function refreshBoostBtn() {
+  const b = $('#boostBtn'); if (!b) return;
+  const { data } = await sb.rpc('boost_status');
+  const st = data && data[0];
+  S.boost = st || null;
+  b.classList.toggle('on', !!(st && st.active_until));
+}
+async function boostSheet() {
+  const { data } = await sb.rpc('boost_status');
+  const st = (data && data[0]) || { active_until: null, used: 0, allowed: 0 };
+  const left = Math.max(0, st.allowed - st.used);
+  const mins = st.active_until ? Math.max(1, Math.round((new Date(st.active_until) - Date.now()) / 60000)) : 0;
+  const w = sheet(`<div style="text-align:center">
+      <div class="boost-hero">${I.bolt({ size: 40, fill: '#fff' })}</div>
+      <h2 style="margin:14px 0 6px">${st.active_until ? 'Boost běží!' : 'Boost'}</h2>
+      <p class="lead" style="font-size:15px">${st.active_until
+        ? `Tvůj profil je teď na prvních místech ještě <b style="color:#fff">${mins} min</b>.`
+        : 'Na 30 minut budeš mezi prvními profily, které lidé v okolí uvidí. Až 10× víc zobrazení.'}</p>
+      ${st.active_until ? '' : st.allowed
+        ? `<p class="small muted" style="margin:10px 0 16px">Zbývá ${left} z ${st.allowed} boostů na tento měsíc.</p>
+           <button class="btn btn-primary" data-go ${left ? '' : 'disabled'}>${I.bolt({ size: 18, fill: '#fff' })} Spustit Boost</button>`
+        : `<p class="small muted" style="margin:10px 0 16px">Boost je součástí předplatného Gold (1× měsíčně) a Platinum (3× měsíčně).</p>
+           <a class="btn btn-primary" href="#/premium">Získat Gold</a>`}
+    </div>`);
+  const g = $('[data-go]', w);
+  if (g) g.onclick = async () => {
+    g.disabled = true;
+    const { error } = await sb.rpc('use_boost');
+    w.remove();
+    if (error) return toast(String(error.message).includes('boost_active') ? 'Boost už běží.' : String(error.message).includes('boost_unavailable') ? 'Tento měsíc už jsi boosty vyčerpal(a).' : errText(error));
+    toast('Boost spuštěn na 30 minut ⚡'); refreshBoostBtn();
+  };
+}
+
+// Jednoduchý spodní panel
+function sheet(inner) {
+  const w = document.createElement('div');
+  w.className = 'sheet-wrap';
+  w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${inner}</div>`;
+  w.onclick = (e) => { if (e.target === w) w.remove(); };
+  document.body.appendChild(w);
+  return w;
 }
 
 function drawDeck() {
@@ -946,7 +1110,7 @@ function drawDeck() {
       <p class="script" style="transform:none">zatím je to všechno</p>
       <h1>Nikoho dalšího jsme nenašli</h1>
       <p class="lead">Zkus rozšířit věk nebo vzdálenost, případně přepnout na „Láska i přátelé“. Noví lidé přibývají každý den.</p>
-      <a class="btn btn-outline btn-sm" href="#/edit">Upravit, koho hledám</a>
+      <a class="btn btn-outline btn-sm" href="#/filters">Upravit filtry</a>
       <button class="link-btn" data-share>Pozvat kamarády do Jiskry</button>
     </div>`;
     $('#actions').style.visibility = 'hidden';
@@ -954,7 +1118,14 @@ function drawDeck() {
     return;
   }
   $('#actions').style.visibility = 'visible';
-  deck.innerHTML = (b ? cardHTML(b, true) : '') + cardHTML(a);
+  if (a.ad) {
+    deck.innerHTML = (b ? cardHTML(b, true) : '') + adCardHTML();
+    const card = deck.lastElementChild;
+    fillAds(card);
+    $('[data-skip]', card).onclick = () => { S.candidates.shift(); drawDeck(); };
+    return;
+  }
+  deck.innerHTML = (b && !b.ad ? cardHTML(b, true) : '') + cardHTML(a);
   const card = deck.lastElementChild;
   attachCard(card, a);
 }
@@ -1011,6 +1182,7 @@ function attachCard(card, p) {
 async function swipe(kind) {
   const p = S.candidates[0];
   if (!p) return;
+  if (p.ad) { S.candidates.shift(); return drawDeck(); }
   const card = $('#deck .card:last-child');
   if (card) {
     const x = kind === 'pass' ? -600 : kind === 'like' ? 600 : 0, y = kind === 'super' ? -900 : 40;
@@ -1028,6 +1200,8 @@ async function swipe(kind) {
     return;
   }
   S.lastSwiped = p;
+  S.swipes = (S.swipes || 0) + 1;
+  if (showAds() && S.swipes % (C.ADS.everySwipes || 8) === 0 && S.candidates.length > 1) S.candidates.splice(1, 0, { id: 'ad-' + S.swipes, ad: true });
   if (S.candidates.length < 4) fetchCandidates().then(() => { if (currentView() === 'discover' && !$('#deck .card')) drawDeck(); });
   if (kind !== 'pass') checkMatch(p);
 }
@@ -1079,44 +1253,123 @@ function showMatch(p, matchId) {
 // ---------------------------------------------------------------------
 // Lajky
 // ---------------------------------------------------------------------
-async function renderLikes() {
+async function renderLikes(tab = S.likesTab || 'likes') {
+  S.likesTab = tab;
+  const tabs = { likes: 'Lajky', top: 'Top výběr', views: 'Návštěvy' };
   app.innerHTML = `${waves()}<div class="screen">
-    <div class="topbar"><h1>Lajky</h1><a class="icon-btn" href="#/premium" aria-label="Předplatné">${I.crown({ size: 20, color: '#FBBF24' })}</a></div>
-    <div class="scroll pad" id="likesBody" style="padding-top:4px"><div class="empty"><div class="spinner"></div></div></div>
+    <div class="topbar"><h1>Pro tebe</h1><a class="icon-btn" href="#/premium" aria-label="Předplatné">${I.crown({ size: 20, color: '#FBBF24' })}</a></div>
+    <div class="pills pad" role="tablist">${Object.entries(tabs).map(([k, v]) => `<button role="tab" data-tab="${k}" aria-selected="${k === tab}">${v}</button>`).join('')}</div>
+    <div class="scroll pad" id="likesBody" style="padding-top:14px"><div class="empty"><div class="spinner"></div></div></div>
     ${tabbar('likes')}</div>`;
+  $$('[data-tab]').forEach((b) => (b.onclick = () => renderLikes(b.dataset.tab)));
   const body = $('#likesBody');
-  const premium = S.plan === 'gold' || S.plan === 'platinum';
-  if (!premium) {
-    const { data: count } = await sb.rpc('likes_me_count');
-    const n = count || 0;
-    body.innerHTML = `
-      <p class="lead" style="margin-bottom:18px">${n ? `Lajklo tě <b style="color:#fff">${n}</b> ${n === 1 ? 'člověk' : n < 5 ? 'lidi' : 'lidí'}.` : 'Zatím tě nikdo nelajkl. Přidej víc fotek, otázky do profilu a ověř se – pomůže to.'}</p>
-      ${n ? `<div class="grid2" aria-hidden="true">${Array.from({ length: Math.min(n, 6) }, () => '<div class="like-tile blur"><div class="shade"></div></div>').join('')}</div>` : ''}
-      <div class="panel" style="margin-top:20px;text-align:center">
-        <p class="script" style="transform:none">kdo to asi je?</p>
-        <h1 style="font-size:22px;margin:4px 0 8px">Uvidíš je všechny s <span style="color:var(--gold)">Gold</span></h1>
-        <p class="lead" style="font-size:14px;margin-bottom:14px">Stačí lajknout zpátky a máte shodu.</p>
-        <a class="btn btn-primary" href="#/premium">Zobrazit, kdo mě lajkl</a>
-      </div>`;
+  const gold = S.plan === 'gold' || S.plan === 'platinum';
+  const plural = (n, a, b, c) => (n === 1 ? a : n < 5 ? b : c);
+  const lock = (title, text) => `<div class="panel" style="margin-top:20px;text-align:center">
+      <p class="script" style="transform:none">kdo to asi je?</p>
+      <h1 style="font-size:22px;margin:4px 0 8px">${title}</h1>
+      <p class="lead" style="font-size:14px;margin-bottom:14px">${text}</p>
+      <a class="btn btn-gold" href="#/premium">${I.crown({ size: 18, color: '#1a0b2e' })} Získat Gold</a></div>`;
+  const openFull = async (lite, after) => {
+    const { data: full } = await sb.rpc('profile_card3', { pid: lite.id });
+    const p = (full && full[0]) || lite;
+    openDetail(p, ['pass', 'super', 'like', 'report'], async (kind) => {
+      if (kind === 'removed') return after();
+      const { error: err } = await sb.from('swipes').insert({ swiper: uid(), swipee: p.id, kind });
+      if (err) { toast(errText(err), 3500); if (String(err.message).includes('like_limit')) go('#/premium'); return; }
+      S.candidates = S.candidates.filter((c) => c.id !== p.id);
+      if (kind !== 'pass') await checkMatch(p);
+      after();
+    });
+  };
+  const tile = (p, i, extra = '') => `<button class="like-tile" data-i="${i}" style="${bgImg(p.photos ? p.photos[0] : p.photo_url)}${p.super_liked_me ? ';border-color:#60A5FA' : ''}" aria-label="${esc(p.name)}, ${esc(p.age)}">
+      <div class="shade"></div>${p.verified ? `<i class="tile-v">${verifiedBadge(18)}</i>` : ''}<span>${esc(p.name)}, ${esc(p.age)}${extra}</span></button>`;
+
+  if (tab === 'likes') {
+    if (!gold) {
+      const { data: count } = await sb.rpc('likes_me_count');
+      const n = count || 0;
+      body.innerHTML = `
+        <p class="lead" style="margin-bottom:18px">${n ? `Lajklo tě <b style="color:#fff">${n}</b> ${plural(n, 'člověk', 'lidi', 'lidí')}.` : 'Zatím tě nikdo nelajkl. Přidej víc fotek, otázky do profilu a ověř se – pomůže to.'}</p>
+        ${n ? `<div class="grid2" aria-hidden="true">${Array.from({ length: Math.min(n, 6) }, () => '<div class="like-tile blur"><div class="shade"></div></div>').join('')}</div>` : ''}
+        ${lock('Uvidíš je všechny s <span style="color:var(--gold)">Gold</span>', 'Stačí lajknout zpátky a máte shodu.')}`;
+      return;
+    }
+    const { data, error } = await sb.rpc('likes_me_full');
+    if (error) { body.innerHTML = `<p class="lead">${esc(errText(error))}</p>`; return; }
+    if (!data.length) { body.innerHTML = '<div class="empty"><h1>Zatím nic</h1><p class="lead">Jakmile tě někdo lajkne, uvidíš ho tady.</p></div>'; return; }
+    body.innerHTML = `<div class="grid2">${data.map((p, i) => tile(p, i, p.compat != null ? `<small>💜 ${p.compat} %</small>` : '')).join('')}</div>`;
+    $$('.like-tile', body).forEach((b) => (b.onclick = () => openFull(data[+b.dataset.i], () => renderLikes('likes'))));
     return;
   }
-  const { data, error } = await sb.rpc('likes_me_full');
+
+  if (tab === 'top') {
+    const { data, error } = await sb.rpc('top_picks');
+    if (error) { body.innerHTML = `<p class="lead">${esc(errText(error))}</p>`; return; }
+    const list = data || [];
+    const total = list[0] ? list[0].total : 0;
+    if (!list.length) { body.innerHTML = '<div class="empty"><h1>Dnes nic nového</h1><p class="lead">Top výběr se obnovuje každý den podle osobnosti a společných zájmů. Doplň si typ osobnosti a zájmy.</p><a class="btn btn-outline btn-sm" href="#/edit">Upravit profil</a></div>'; return; }
+    body.innerHTML = `<p class="lead" style="margin-bottom:14px;font-size:15px">Dnešní nejlepší shody podle osobnosti a společných zájmů. Obnovuje se každý den.</p>
+      <div class="grid2">${list.map((p, i) => tile(p, i, `<small>💜 ${p.compat ?? '–'} %${p.shared ? ` · ${p.shared} ${plural(p.shared, 'zájem', 'zájmy', 'zájmů')}` : ''}</small>`)).join('')}
+      ${!gold && total > list.length ? Array.from({ length: Math.min(total - list.length, 4) }, () => `<a class="like-tile blur" href="#/premium"><div class="shade"></div><span class="lock-ic">${I.lock({ size: 26, color: '#fff' })}</span></a>`).join('') : ''}</div>
+      ${!gold && total > list.length ? lock(`Dalších ${total - list.length} top shod`, 'S Gold uvidíš každý den 10 nejlepších shod.') : ''}`;
+    $$('button.like-tile', body).forEach((b) => (b.onclick = () => openFull(list[+b.dataset.i], () => renderLikes('top'))));
+    return;
+  }
+
+  // Návštěvy profilu
+  const { data: cnt } = await sb.rpc('viewers_count');
+  const n = cnt || 0;
+  if (!gold) {
+    body.innerHTML = `<p class="lead" style="margin-bottom:18px">${n ? `Za posledních 30 dní si tvůj profil prohlédlo <b style="color:#fff">${n}</b> ${plural(n, 'člověk', 'lidi', 'lidí')}.` : 'Zatím si tvůj profil nikdo neprohlédl. Boost a víc fotek ti pomůže.'}</p>
+      ${n ? `<div class="grid2" aria-hidden="true">${Array.from({ length: Math.min(n, 4) }, () => '<div class="like-tile blur"><div class="shade"></div></div>').join('')}</div>` : ''}
+      ${lock('Zjisti, kdo tě viděl', 'Kdo mě viděl je součástí Gold a Platinum.')}`;
+    return;
+  }
+  const { data, error } = await sb.rpc('viewers');
   if (error) { body.innerHTML = `<p class="lead">${esc(errText(error))}</p>`; return; }
-  if (!data.length) { body.innerHTML = '<div class="empty"><h1>Zatím nic</h1><p class="lead">Jakmile tě někdo lajkne, uvidíš ho tady.</p></div>'; return; }
-  body.innerHTML = `<div class="grid2">${data.map((p, i) => `
-    <button class="like-tile" data-i="${i}" style="${bgImg(p.photos && p.photos[0])};border-color:${p.super_liked_me ? '#60A5FA' : 'var(--line-strong)'}" aria-label="${esc(p.name)}, ${esc(p.age)}">
-      <div class="shade"></div><span>${esc(p.name)}, ${esc(p.age)}${p.compat != null ? `<small>💜 ${p.compat} %</small>` : ''}</span></button>`).join('')}</div>`;
-  $$('.like-tile', body).forEach((b) => (b.onclick = async () => {
-    const lite = data[+b.dataset.i];
-    const { data: full } = await sb.rpc('profile_card', { pid: lite.id });
-    const p = (full && full[0]) || lite;
-    openDetail(p, ['pass', 'like', 'report'], async (kind) => {
-      const { error: err } = await sb.from('swipes').insert({ swiper: uid(), swipee: p.id, kind });
-      if (err) return toast(errText(err));
-      if (kind === 'like') await checkMatch(p);
-      renderLikes();
-    });
-  }));
+  if (!data.length) { body.innerHTML = '<div class="empty"><h1>Zatím nikdo</h1><p class="lead">Tady uvidíš, kdo si otevřel tvůj profil.</p></div>'; return; }
+  body.innerHTML = `<div class="grid2">${data.map((p, i) => tile(p, i, `<small>${timeLabel(p.viewed_at)}</small>`)).join('')}</div>`;
+  $$('.like-tile', body).forEach((b) => (b.onclick = () => openFull(data[+b.dataset.i], () => renderLikes('views'))));
+}
+
+// ---------------------------------------------------------------------
+// Reklamy (jen pro uživatele bez předplatného)
+// ---------------------------------------------------------------------
+const showAds = () => !S.plan && !!C.ADS;
+let adsLoaded = false;
+function adSlotHTML(slot, cls = '') {
+  if (!showAds()) return '';
+  if (C.ADS.adsenseClient && C.ADS.slots && C.ADS.slots[slot]) {
+    return `<div class="ad ${cls}"><span class="ad-label">Reklama</span><ins class="adsbygoogle" style="display:block" data-ad-client="${esc(C.ADS.adsenseClient)}" data-ad-slot="${esc(C.ADS.slots[slot])}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
+  }
+  return `<a class="ad house ${cls}" href="#/premium"><span class="ad-label">Jiskra Gold</span>
+    <div class="house-ic">${I.crown({ size: 22, color: '#1a0b2e' })}</div>
+    <div><b>Bez reklam a s neomezenými lajky</b><span>Uvidíš, kdo tě lajkl, Top výběr a Boost.</span></div>${I.chevron({ size: 18, color: '#A897C4' })}</a>`;
+}
+function fillAds(root) {
+  if (!C.ADS || !C.ADS.adsenseClient) return;
+  if (!adsLoaded) {
+    adsLoaded = true;
+    const sc = document.createElement('script');
+    sc.async = true; sc.crossOrigin = 'anonymous';
+    sc.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(C.ADS.adsenseClient)}`;
+    document.head.appendChild(sc);
+  }
+  $$('ins.adsbygoogle', root).forEach(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* blokováno */ } });
+}
+function adCardHTML() {
+  const real = C.ADS.adsenseClient && C.ADS.slots && C.ADS.slots.discover;
+  return `<article class="card ad-card" aria-label="Reklama">
+    ${real ? `<div class="ad-card-in"><span class="ad-label">Reklama</span>${adSlotHTML('discover')}</div>`
+      : `<div class="ad-card-in house-card">
+        <span class="ad-label">Sponzorováno</span>
+        <div class="boost-hero gold">${I.crown({ size: 44, color: '#1a0b2e' })}</div>
+        <h2>Jiskra Gold</h2>
+        <p class="lead" style="font-size:15px">Neomezené lajky, uvidíš kdo tě lajkl, Top výběr dne, Boost a žádné reklamy.</p>
+        <a class="btn btn-gold" href="#/premium">Vyzkoušet Gold</a></div>`}
+    <button class="btn btn-outline btn-sm ad-skip" data-skip>Pokračovat ve swipování</button>
+  </article>`;
 }
 
 // ---------------------------------------------------------------------
@@ -1138,12 +1391,14 @@ async function renderChats() {
         ${convos.length ? convos.map((m) => `<a class="list-item" href="#/chat/${m.match_id}">
             <div style="position:relative"><div class="avatar" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>${m.active_recently ? '<span class="active-dot abs"></span>' : ''}</div>
             <div class="body"><div class="top"><span class="title">${esc(m.name)} ${m.verified ? verifiedBadge(15) : ''}</span><span class="small muted">${timeLabel(m.last_at)}</span></div>
-            <div class="top" style="align-items:center"><div class="sub ${m.unread ? 'new' : ''}">${m.last_from_me ? 'Ty: ' : ''}${m.last_kind === 'image' ? '📷 Fotka' : esc(m.last_body)}</div>
+            <div class="top" style="align-items:center"><div class="sub ${m.unread ? 'new' : ''}">${m.last_from_me ? 'Ty: ' : ''}${esc(msgPreview({ kind: m.last_kind, media_type: m.last_kind, body: m.last_body }))}</div>
             ${m.unread ? `<span class="count">${m.unread}</span>` : ''}</div></div></a>`).join('')
           : `<p class="lead" style="margin-top:14px">${fresh.length ? 'Napiš některé ze svých shod nahoře.' : 'Zatím tu nic není. Jdi objevovat a lajkuj lidi, kteří tě zaujmou.'}</p>`}
+        <div style="margin-top:18px">${adSlotHTML('chats')}</div>
       </div>
     </div>
     ${tabbar('chats')}</div>`;
+  fillAds(app);
 }
 
 function icebreakers(other) {
@@ -1157,6 +1412,20 @@ function icebreakers(other) {
   }
   out.push('Ahoj! Jak se máš? 👋', 'Kafe nebo čaj?', 'Jaký byl tvůj nejlepší výlet?');
   return [...new Set(out)].slice(0, 5);
+}
+
+// Animované nálepky (Noto Emoji od Googlu)
+const STICKERS = ['1f60d', '1f970', '1f618', '1f60a', '1f609', '1f602', '1f923', '1f60e', '1f914', '1f633', '1f62d', '1f631',
+  '1f973', '1f917', '1f44b', '1f44d', '1f64f', '1f525', '2764_fe0f', '1f48b', '1f339', '1f389', '2615', '1f377'];
+const stickerUrl = (cp, ext = 'webp') => `https://fonts.gstatic.com/s/e/notoemoji/latest/${cp}/512.${ext}`;
+const fmtDur = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+function msgInnerHTML(msg) {
+  const t = msg.media_type || (msg.kind === 'image' ? 'photo' : 'text');
+  if (t === 'sticker') return `<img src="${esc(msg.image_url)}" alt="Nálepka" class="msg-sticker" loading="lazy">`;
+  if (t === 'audio') return `<div class="voice">${I.mic({ size: 18, color: '#C084FC' })}<audio controls preload="metadata" src="${esc(msg.image_url)}"></audio></div>`;
+  if (t === 'photo' && msg.image_url) return `<img src="${esc(msg.image_url)}" alt="Fotka" class="msg-img" loading="lazy">`;
+  return esc(msg.body);
 }
 
 async function renderChat(matchId) {
@@ -1175,7 +1444,8 @@ async function renderChat(matchId) {
         <div class="who"><b>${esc(m.name)}, ${esc(m.age)} ${m.verified ? verifiedBadge(16) : ''}</b>
           <span class="small" id="status" style="color:${m.active_recently ? '#6EE7B7' : '#A897C4'}">${m.active_recently ? 'Aktivní dnes' : 'Klepni pro profil'}</span></div>
       </button>
-      <button class="icon-btn ghost" data-act="menu" aria-label="Možnosti – zrušit shodu nebo nahlásit">${I.dots({ size: 22 })}</button>
+      <button class="icon-btn ghost" data-act="call" aria-label="Videohovor">${I.video({ size: 22, color: '#C084FC' })}</button>
+      <button class="icon-btn ghost" data-act="menu" aria-label="Možnosti">${I.dots({ size: 22 })}</button>
     </div>
     <div class="messages" id="msgs">
       <div class="notice">${I.shield({ size: 14, color: '#C084FC' })} Shoda ${timeLabel(m.created_at)} · Nikdy neposílej peníze lidem, které neznáš osobně.</div>
@@ -1183,22 +1453,33 @@ async function renderChat(matchId) {
     <div class="typing" id="typing" hidden><span></span><span></span><span></span></div>
     <div class="tips" id="tips"></div>
     <form class="composer" id="composer">
-      <label class="icon-btn ghost" style="cursor:pointer" aria-label="Poslat fotku">${I.image({ size: 22, color: '#C084FC' })}<input type="file" accept="image/*" class="sr-only" id="imgIn"></label>
+      <button type="button" class="icon-btn ghost" data-act="more" aria-label="Fotka nebo nálepka">${I.plus({ size: 22, color: '#C084FC' })}</button>
+      <input type="file" accept="image/*" class="sr-only" id="imgIn" tabindex="-1">
       <label for="msgIn" class="sr-only">Napiš zprávu</label>
       <input class="input" id="msgIn" autocomplete="off" maxlength="2000" placeholder="Napiš zprávu…" enterkeyhint="send">
-      <button class="send" type="submit" aria-label="Odeslat">${I.send({ size: 20, color: '#fff' })}</button>
+      <button class="send" type="submit" id="sendBtn" aria-label="Odeslat">${I.send({ size: 20, color: '#fff' })}</button>
+      <button class="send mic" type="button" id="micBtn" aria-label="Nahrát hlasovou zprávu">${I.mic({ size: 20, color: '#fff' })}</button>
     </form>
+    <div class="recbar" id="recbar" hidden>
+      <button type="button" class="icon-btn ghost" data-rec="cancel" aria-label="Zrušit nahrávání">${I.trash({ size: 22, color: '#F87171' })}</button>
+      <span class="rec-dot"></span><b id="recTime">0:00</b><span class="small muted" style="flex:1">Nahrávám…</span>
+      <button type="button" class="send" data-rec="send" aria-label="Odeslat hlasovou zprávu">${I.send({ size: 20, color: '#fff' })}</button>
+    </div>
   </div>`;
 
   const box = $('#msgs');
+  const input = $('#msgIn');
+  const syncButtons = () => { const has = !!input.value.trim(); $('#sendBtn').hidden = !has; $('#micBtn').hidden = has || !window.MediaRecorder; };
+  syncButtons();
+
   const renderMsg = (msg) => {
     const mine = msg.sender === me;
-    const html = (msg.kind === 'image' && msg.image_url ? `<img src="${esc(msg.image_url)}" alt="Fotka" class="msg-img" loading="lazy">` : esc(msg.body))
-      + `<time>${timeLabel(msg.created_at)}</time>` + (msg.reaction ? `<span class="reaction">${esc(msg.reaction)}</span>` : '');
+    const t = msg.media_type || (msg.kind === 'image' ? 'photo' : 'text');
+    const html = msgInnerHTML(msg) + `<time>${timeLabel(msg.created_at)}</time>` + (msg.reaction ? `<span class="reaction">${esc(msg.reaction)}</span>` : '');
     let el = box.querySelector(`[data-mid="${msg.id}"]`);
     if (!el) {
       el = document.createElement('div');
-      el.className = 'msg' + (mine ? ' me' : '') + (msg.kind === 'image' ? ' img' : '');
+      el.className = 'msg' + (mine ? ' me' : '') + (t === 'photo' ? ' img' : t === 'sticker' ? ' sticker' : t === 'audio' ? ' audio' : '');
       el.dataset.mid = msg.id;
       box.appendChild(el);
       if (!mine) bindReact(el, msg.id);
@@ -1239,7 +1520,7 @@ async function renderChat(matchId) {
     };
     el.addEventListener('dblclick', open);
     el.addEventListener('contextmenu', (e) => { e.preventDefault(); open(); });
-    el.addEventListener('touchstart', () => { t = setTimeout(open, 450); }, { passive: true });
+    el.addEventListener('touchstart', (e) => { if (e.target.closest('audio')) return; t = setTimeout(open, 450); }, { passive: true });
     el.addEventListener('touchend', () => clearTimeout(t));
     el.addEventListener('touchmove', () => clearTimeout(t), { passive: true });
   }
@@ -1249,11 +1530,11 @@ async function renderChat(matchId) {
   box.scrollTop = box.scrollHeight;
   sb.rpc('mark_read', { m: matchId }).then(() => { const mm = S.matches.find((x) => x.match_id === matchId); if (mm) mm.unread = 0; });
 
-  sb.rpc('profile_card', { pid: m.other_id }).then(({ data }) => {
+  sb.rpc('profile_card3', { pid: m.other_id }).then(({ data }) => {
     other = data && data[0];
     if (!list || !list.length) {
       $('#tips').innerHTML = icebreakers(other).map((t) => `<button type="button">${esc(t)}</button>`).join('');
-      $$('#tips button').forEach((b) => (b.onclick = () => { $('#msgIn').value = b.textContent; $('#msgIn').focus(); }));
+      $$('#tips button').forEach((b) => (b.onclick = () => { input.value = b.textContent; syncButtons(); input.focus(); }));
     }
   });
 
@@ -1275,21 +1556,25 @@ async function renderChat(matchId) {
     })
     .subscribe();
 
-  $('#msgIn').addEventListener('input', () => {
+  input.addEventListener('input', () => {
+    syncButtons();
     if (Date.now() - lastTypingSent < 2000 || !S.chatChannel) return;
     lastTypingSent = Date.now();
     S.chatChannel.send({ type: 'broadcast', event: 'typing', payload: { from: me } });
   });
 
+  const send = async (row) => {
+    const { data, error } = await sb.from('messages').insert({ match_id: matchId, sender: me, ...row }).select().single();
+    if (error) { toast(String(error.message).includes('blocked') ? 'Tomuhle člověku už nemůžeš psát.' : errText(error)); return false; }
+    add(data); return true;
+  };
+
   $('#composer').onsubmit = async (e) => {
     e.preventDefault();
-    const input = $('#msgIn');
     const body = input.value.trim();
     if (!body) return;
-    input.value = '';
-    const { data, error } = await sb.from('messages').insert({ match_id: matchId, sender: me, body }).select().single();
-    if (error) { input.value = body; return toast(errText(error)); }
-    add(data);
+    input.value = ''; syncButtons();
+    if (!(await send({ body }))) { input.value = body; syncButtons(); }
   };
 
   $('#imgIn').onchange = async (e) => {
@@ -1299,26 +1584,76 @@ async function renderChat(matchId) {
     toast('Odesílám fotku…');
     try {
       const url = await uploadPhoto(f, 'chat/');
-      const { data, error } = await sb.from('messages').insert({ match_id: matchId, sender: me, body: '📷', kind: 'image', image_url: url }).select().single();
-      if (error) throw error;
-      add(data);
+      await send({ body: '📷', kind: 'image', media_type: 'photo', image_url: url });
     } catch (err) { toast(errText(err)); }
   };
 
-  $('[data-profile]').onclick = () => { if (other) openDetail(other, ['report'], null); else toast('Profil se načítá…'); };
+  // Fotka / nálepka
+  $('[data-act=more]').onclick = () => {
+    const w = sheet(`<div class="sheet-tabs"><button type="button" class="btn btn-outline btn-sm" data-k="photo">${I.image({ size: 18, color: '#C084FC' })} Poslat fotku</button></div>
+      <p class="label-caps" style="margin:6px 0 0">Nálepky</p>
+      <div class="sticker-grid">${STICKERS.map((cp) => `<button type="button" data-cp="${cp}" aria-label="Nálepka"><img src="${stickerUrl(cp)}" alt="" loading="lazy" width="56" height="56"></button>`).join('')}</div>`);
+    $('[data-k=photo]', w).onclick = () => { w.remove(); $('#imgIn').click(); };
+    $$('[data-cp]', w).forEach((b) => (b.onclick = () => { w.remove(); send({ body: '✨', kind: 'image', media_type: 'sticker', image_url: stickerUrl(b.dataset.cp) }); }));
+  };
+
+  // Hlasové zprávy
+  let rec = null;
+  $('#micBtn').onclick = async () => {
+    if (rec) return;
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { return toast('Povol přístup k mikrofonu v nastavení.'); }
+    const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+    const mimeType = types.find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+    const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks = [];
+    const started = Date.now();
+    rec = { mr, stream, cancel: false };
+    mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(rec.timer);
+      const cancelled = rec.cancel; rec = null;
+      $('#recbar').hidden = true; $('#composer').hidden = false;
+      const secs = (Date.now() - started) / 1000;
+      if (cancelled) return;
+      if (secs < 1) return toast('Podrž nahrávání aspoň vteřinu.');
+      const type = (mr.mimeType || 'audio/webm').split(';')[0];
+      const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+      const blob = new Blob(chunks, { type });
+      try {
+        const path = `${me}/audio/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: type });
+        if (error) throw error;
+        const url = sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+        await send({ body: `🎤 ${fmtDur(secs)}`, kind: 'image', media_type: 'audio', image_url: url });
+      } catch (err) { toast(errText(err)); }
+    };
+    mr.start();
+    $('#composer').hidden = true; $('#recbar').hidden = false;
+    rec.timer = setInterval(() => {
+      const s = (Date.now() - started) / 1000;
+      $('#recTime').textContent = fmtDur(s);
+      if (s >= 120 && rec) rec.mr.stop();
+    }, 250);
+  };
+  $('[data-rec=cancel]').onclick = () => { if (rec) { rec.cancel = true; rec.mr.stop(); } };
+  $('[data-rec=send]').onclick = () => { if (rec) rec.mr.stop(); };
+
+  $('[data-act=call]').onclick = () => startCall(m, true);
+  $('[data-profile]').onclick = () => { if (other) openDetail(other, [], null); else toast('Profil se načítá…'); };
 
   $('[data-act=menu]').onclick = () => {
-    const w = document.createElement('div');
-    w.className = 'sheet-wrap';
-    w.innerHTML = `<div class="sheet" role="dialog" aria-label="Možnosti">
+    const w = sheet(`
       <button class="btn btn-outline" data-k="profile">Zobrazit profil</button>
+      <button class="btn btn-outline" data-k="call">${I.video({ size: 18, color: '#C084FC' })} Videohovor</button>
       <button class="btn btn-outline" data-k="unmatch">Zrušit shodu</button>
-      <button class="btn btn-danger" data-k="report">Nahlásit a zablokovat</button>
-      <button class="btn" data-k="close" style="background:transparent;color:var(--muted)">Zavřít</button></div>`;
-    document.body.appendChild(w);
-    w.onclick = (ev) => { if (ev.target === w) w.remove(); };
+      <button class="btn btn-outline" data-k="block">${I.ban({ size: 18, color: '#FCA5A5' })} Blokovat</button>
+      <button class="btn btn-danger" data-k="report">Nahlásit</button>
+      <button class="btn" data-k="close" style="background:transparent;color:var(--muted)">Zavřít</button>`);
     $('[data-k=close]', w).onclick = () => w.remove();
-    $('[data-k=profile]', w).onclick = () => { w.remove(); if (other) openDetail(other, ['report']); };
+    $('[data-k=profile]', w).onclick = () => { w.remove(); if (other) openDetail(other, []); };
+    $('[data-k=call]', w).onclick = () => { w.remove(); startCall(m, true); };
     $('[data-k=unmatch]', w).onclick = async () => {
       w.remove();
       if (!(await dialog({ title: 'Zrušit shodu?', text: `Konverzace s ${m.name} se smaže pro oba a už se neuvidíte.`, ok: 'Zrušit shodu', danger: true }))) return;
@@ -1326,8 +1661,141 @@ async function renderChat(matchId) {
       if (error) return toast(errText(error));
       await loadMatches(); toast('Shoda zrušena.'); go('#/chats');
     };
+    $('[data-k=block]', w).onclick = async () => { w.remove(); if (await blockUser(m.other_id, m.name, matchId)) go('#/chats'); };
     $('[data-k=report]', w).onclick = async () => { w.remove(); if (await reportUser(m.other_id, m.name, matchId)) go('#/chats'); };
   };
+}
+
+// ---------------------------------------------------------------------
+// Videohovory (WebRTC, signalizace přes Supabase Realtime)
+// ---------------------------------------------------------------------
+let CALL = null, RING = null;
+const iceServers = () => (C.ICE_SERVERS && C.ICE_SERVERS.length ? C.ICE_SERVERS : [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }]);
+
+function joinChannel(topic) {
+  const ch = sb.channel(topic, { config: { broadcast: { self: false } } });
+  const ready = new Promise((res) => ch.subscribe((st) => { if (st === 'SUBSCRIBED') res(ch); }));
+  return { ch, ready };
+}
+async function sendOnce(topic, event, payload) {
+  const { ch, ready } = joinChannel(topic);
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 4000))]);
+  await ch.send({ type: 'broadcast', event, payload });
+  setTimeout(() => sb.removeChannel(ch), 1500);
+}
+
+function subscribeRing() {
+  if (S.ringChannel) return;
+  S.ringChannel = sb.channel(`user-${uid()}`, { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'ring' }, async ({ payload: p }) => {
+      if (!p || CALL || RING) return;
+      if (!S.matches.find((x) => x.match_id === p.matchId && x.other_id === p.from)) await loadMatches();
+      const m = S.matches.find((x) => x.match_id === p.matchId && x.other_id === p.from);
+      if (m) incomingCall(m);
+    })
+    .on('broadcast', { event: 'cancel' }, ({ payload: p }) => {
+      if (RING && p && RING.m.match_id === p.matchId) { RING.close(); toast(`Zmeškaný hovor: ${RING.m.name}`); }
+    })
+    .subscribe();
+}
+
+function incomingCall(m) {
+  const ov = document.createElement('div');
+  ov.className = 'overlay call-in';
+  ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', `Příchozí videohovor od ${m.name}`);
+  ov.innerHTML = `${waves('mid')}<div class="call-card">
+    <div class="avatar xl ring pulse" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>
+    <h1 style="margin-top:18px">${esc(m.name)}</h1><p class="lead">Příchozí videohovor…</p>
+    <div class="call-btns"><button class="round lg decline" data-k="no" aria-label="Odmítnout">${I.phoneOff({ size: 28, color: '#fff' })}</button>
+      <button class="round lg accept" data-k="yes" aria-label="Přijmout">${I.video({ size: 28, color: '#fff' })}</button></div></div>`;
+  document.body.appendChild(ov);
+  const vib = setInterval(() => navigator.vibrate && navigator.vibrate([400, 200, 400]), 1600);
+  const timeout = setTimeout(() => close(), 45000);
+  function close() { clearInterval(vib); clearTimeout(timeout); ov.remove(); RING = null; }
+  RING = { m, close };
+  $('[data-k=no]', ov).onclick = () => { close(); sendOnce(`call-${m.match_id}`, 'decline', {}); };
+  $('[data-k=yes]', ov).onclick = () => { close(); startCall(m, false); };
+}
+
+async function startCall(m, caller) {
+  if (CALL) return toast('Hovor už probíhá.');
+  if (!window.RTCPeerConnection || !navigator.mediaDevices) return toast('Tohle zařízení videohovory neumí.');
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 } }, audio: true }); } catch {
+    if (!caller) sendOnce(`call-${m.match_id}`, 'decline', {});
+    return toast('Povol přístup ke kameře a mikrofonu.', 3500);
+  }
+  const pc = new RTCPeerConnection({ iceServers: iceServers() });
+  stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+  const ov = document.createElement('div');
+  ov.className = 'call';
+  ov.innerHTML = `<video class="remote" autoplay playsinline></video>
+    <div class="call-wait"><div class="avatar xl ring pulse" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div><h2>${esc(m.name)}</h2><p class="lead" id="callSt">${caller ? 'Volám…' : 'Připojuji…'}</p></div>
+    <video class="local" autoplay playsinline muted></video>
+    <div class="call-bar"><span id="callTime"></span>
+      <button class="round md" data-k="mic" aria-label="Ztlumit mikrofon">${I.mic({ size: 22, color: '#fff' })}</button>
+      <button class="round lg decline" data-k="end" aria-label="Zavěsit">${I.phoneOff({ size: 28, color: '#fff' })}</button>
+      <button class="round md" data-k="cam" aria-label="Vypnout kameru">${I.video({ size: 22, color: '#fff' })}</button></div>`;
+  document.body.appendChild(ov);
+  $('.local', ov).srcObject = stream;
+  const { ch, ready } = joinChannel(`call-${m.match_id}`);
+  const pending = [];
+  let connectedAt = null, tick = null, noAnswer = null;
+  CALL = { pc, stream, ch, ov, m };
+  const status = (t) => { const s = $('#callSt', ov); if (s) s.textContent = t; };
+  const end = (msg, notify = true) => {
+    if (!CALL || CALL.pc !== pc) return;
+    if (notify) ch.send({ type: 'broadcast', event: 'hangup', payload: {} });
+    if (caller && !connectedAt) sendOnce(`user-${m.other_id}`, 'cancel', { matchId: m.match_id });
+    clearInterval(tick); clearTimeout(noAnswer);
+    stream.getTracks().forEach((t) => t.stop());
+    try { pc.close(); } catch { /* už zavřeno */ }
+    setTimeout(() => sb.removeChannel(ch), 800);
+    ov.remove(); CALL = null;
+    if (msg) toast(msg);
+  };
+  const flush = async () => { while (pending.length) { try { await pc.addIceCandidate(pending.shift()); } catch { /* ignoruj */ } } };
+  pc.onicecandidate = (e) => { if (e.candidate) ch.send({ type: 'broadcast', event: 'ice', payload: e.candidate.toJSON() }); };
+  pc.ontrack = (e) => {
+    $('.remote', ov).srcObject = e.streams[0];
+    $('.call-wait', ov).hidden = true;
+    if (!connectedAt) {
+      connectedAt = Date.now(); clearTimeout(noAnswer);
+      tick = setInterval(() => { $('#callTime', ov).textContent = fmtDur((Date.now() - connectedAt) / 1000); }, 1000);
+    }
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'failed') end('Spojení se nepodařilo navázat. Zkus to na Wi-Fi.');
+    if (pc.connectionState === 'disconnected') status('Spojení vypadlo…');
+  };
+  ch.on('broadcast', { event: 'accept' }, async () => {
+    if (!caller) return;
+    status('Připojuji…');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ch.send({ type: 'broadcast', event: 'offer', payload: { type: offer.type, sdp: offer.sdp } });
+  }).on('broadcast', { event: 'offer' }, async ({ payload }) => {
+    if (caller) return;
+    await pc.setRemoteDescription(payload); await flush();
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    ch.send({ type: 'broadcast', event: 'answer', payload: { type: ans.type, sdp: ans.sdp } });
+  }).on('broadcast', { event: 'answer' }, async ({ payload }) => {
+    if (!caller) return;
+    await pc.setRemoteDescription(payload); await flush();
+  }).on('broadcast', { event: 'ice' }, async ({ payload }) => {
+    if (pc.remoteDescription) { try { await pc.addIceCandidate(payload); } catch { /* ignoruj */ } } else pending.push(payload);
+  }).on('broadcast', { event: 'hangup' }, () => end('Hovor ukončen.', false))
+    .on('broadcast', { event: 'decline' }, () => end(`${m.name} teď nemůže.`, false));
+  await ready;
+  if (caller) {
+    await sendOnce(`user-${m.other_id}`, 'ring', { from: uid(), matchId: m.match_id });
+    noAnswer = setTimeout(() => end(`${m.name} to nezvedá.`), 45000);
+  } else ch.send({ type: 'broadcast', event: 'accept', payload: {} });
+
+  $('[data-k=end]', ov).onclick = () => end('Hovor ukončen.');
+  $('[data-k=mic]', ov).onclick = (e) => { const t = stream.getAudioTracks()[0]; t.enabled = !t.enabled; e.currentTarget.classList.toggle('off', !t.enabled); };
+  $('[data-k=cam]', ov).onclick = (e) => { const t = stream.getVideoTracks()[0]; t.enabled = !t.enabled; e.currentTarget.classList.toggle('off', !t.enabled); };
 }
 
 // ---------------------------------------------------------------------
@@ -1341,7 +1809,7 @@ async function renderProfile() {
   const dash = Math.round(390 * pct / 100);
   const vs = p.verification_status;
   app.innerHTML = `${waves('mid')}<div class="screen">
-    <div class="topbar"><h1>Profil</h1>${p.is_admin ? `<a class="icon-btn" href="#/admin" aria-label="Administrace">${I.gear({ size: 20, color: '#fff' })}</a>` : ''}</div>
+    <div class="topbar"><h1>Profil</h1><a class="icon-btn" href="#/settings" aria-label="Nastavení">${I.gear({ size: 20, color: '#fff' })}</a></div>
     <div class="scroll">
       <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px">
         <div style="position:relative;width:132px;height:132px">
@@ -1368,36 +1836,196 @@ async function renderProfile() {
           <div style="flex:1">${S.plan
             ? `<b style="font-size:16px">Jiskra <span style="color:var(--gold)">${planName[S.plan]}</span></b><div class="small" style="color:#C9BCE0">Aktivní do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}</div>`
             : `<b style="font-size:16px">Jiskra <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: '#C084FC' })}</a>
-        <div>
-          ${pushSupported() ? `<div class="settings-row"><span>${I.bell({ size: 18, color: '#C084FC' })} Upozornění</span>
-            <label class="switch"><input type="checkbox" id="pushToggle"><span class="sl"></span><span class="sr-only">Upozornění</span></label></div>` : ''}
-          <a class="settings-row" href="#/edit"><span>Koho hledám</span><span class="small muted">${esc(MODES[p.mode] || '')} · ${esc(p.min_age)}–${esc(p.max_age)} let</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-          <button class="settings-row" data-share><span>Pozvat kamarády</span>${I.chevron({ size: 18, color: '#A897C4' })}</button>
-          <a class="settings-row" href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener"><span>Ochrana soukromí</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-          <a class="settings-row" href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener"><span>Podmínky používání</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-          <a class="settings-row" href="mailto:${esc(C.SUPPORT_EMAIL)}"><span>Napsat podpoře</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-          ${p.is_admin ? `<a class="settings-row" href="#/admin"><span>${I.gear({ size: 18, color: '#FBBF24' })} Administrace</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>` : ''}
-          <button class="settings-row" data-act="logout"><span>Odhlásit se</span></button>
-          <button class="settings-row" data-act="delete" style="color:#FCA5A5"><span>Smazat účet</span></button>
+        <div class="quick-grid">
+          <a href="#/filters">${I.sliders({ size: 22, color: '#C084FC' })}<span>Filtry</span></a>
+          <a href="#/likes" data-tab="views">${I.eye({ size: 22, color: '#C084FC' })}<span>Kdo mě viděl</span></a>
+          <button type="button" data-boost>${I.bolt({ size: 22, fill: '#C084FC' })}<span>Boost</span></button>
+          <a href="#/settings">${I.gear({ size: 22, color: '#C084FC' })}<span>Nastavení</span></a>
         </div>
+        <div>
+          <button class="settings-row" data-share><span>Pozvat kamarády</span>${I.chevron({ size: 18, color: '#A897C4' })}</button>
+          ${p.is_admin ? `<a class="settings-row" href="#/admin"><span>${I.gear({ size: 18, color: '#FBBF24' })} Administrace</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>` : ''}
+        </div>
+        ${adSlotHTML('profile')}
       </div>
     </div>
     ${tabbar('profile')}</div>`;
   $('[data-preview]').onclick = () => openDetail(selfAsCard(), []);
   $('[data-share]').onclick = shareApp;
-  $('[data-act=logout]').onclick = () => sb.auth.signOut();
-  $('[data-act=delete]').onclick = async () => {
-    if (!(await dialog({ title: 'Smazat účet?', text: 'Smaže se profil, fotky v profilu, shody i všechny zprávy. Nejde to vrátit.' + (S.plan ? ' Předplatné nejdřív zruš v Google Play, jinak se bude dál strhávat.' : ''), ok: 'Smazat navždy', danger: true }))) return;
+  $('[data-boost]').onclick = boostSheet;
+  $('[data-tab=views]').onclick = () => { S.likesTab = 'views'; };
+  fillAds(app);
+}
+
+// ---------------------------------------------------------------------
+// Filtry
+// ---------------------------------------------------------------------
+function renderFilters() {
+  const p = S.me;
+  const f = { verified_only: false, min_height: null, max_height: null, goals: [], smoking: [], kids: [], religion: [], ...(p.filters || {}) };
+  const E = { mode: p.mode || 'laska', looking_for: p.looking_for };
+  const premium = !!S.plan;
+  const multi = (key, opts) => `<div class="chips" data-multi="${key}">${Object.entries(opts).map(([k, v]) => `<button type="button" class="chip" data-v="${k}" aria-pressed="${(f[key] || []).includes(k)}">${v}</button>`).join('')}</div>`;
+  app.innerHTML = `${waves()}<div class="screen">
+    <div class="topbar"><a class="icon-btn" href="#/discover" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Filtry</h1><button class="link-btn" data-reset>Vymazat</button></div>
+    <form id="ff" class="scroll pad" style="padding-top:6px" novalidate>
+      <p class="label-caps">Základní</p>
+      <div class="field"><span class="lbl">Hledám</span>${segHTML('f-mode', MODES, E.mode)}</div>
+      <div class="field" id="f-lookwrap" ${E.mode === 'pratele' ? 'hidden' : ''}><span class="lbl">Na rande</span>${segHTML('f-look', { muze: 'Muže', zeny: 'Ženy', vsechny: 'Všechny' }, E.looking_for)}</div>
+      <div class="field"><label>Věk: <b id="f-agev">${p.min_age}–${p.max_age} let</b></label>
+        <div class="dual"><input type="range" class="range" id="f-min" min="18" max="99" value="${p.min_age}" aria-label="Věk od"><input type="range" class="range" id="f-max" min="18" max="99" value="${p.max_age}" aria-label="Věk do"></div></div>
+      <div class="field"><label for="f-dist">Vzdálenost: <b id="f-distv">${p.max_distance_km >= 1000 ? 'kdekoli' : p.max_distance_km + ' km'}</b></label>
+        <input type="range" id="f-dist" min="5" max="1000" step="5" value="${p.max_distance_km}" class="range"></div>
+
+      <div class="adv ${premium ? '' : 'locked'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+          <p class="label-caps" style="margin:0">Pokročilé filtry</p>${premium ? '' : `<a class="badge-chip hot" href="#/premium">${I.lock({ size: 12, color: '#fff' })} Plus</a>`}</div>
+        <label class="settings-row" style="margin-top:8px"><span>${verifiedBadge(18)} Jen ověřené profily</span>
+          <span class="switch"><input type="checkbox" id="f-ver" ${f.verified_only ? 'checked' : ''}><span class="sl"></span></span></label>
+        <div class="field"><label>Výška: <b id="f-hv">${f.min_height || 140}–${f.max_height || 210} cm</b></label>
+          <div class="dual"><input type="range" class="range" id="f-hmin" min="140" max="210" value="${f.min_height || 140}" aria-label="Výška od"><input type="range" class="range" id="f-hmax" min="140" max="210" value="${f.max_height || 210}" aria-label="Výška do"></div></div>
+        <div class="field"><span class="lbl">Co hledá</span>${multi('goals', GOALS)}</div>
+        <div class="field"><span class="lbl">Kouření</span>${multi('smoking', SMOKE)}</div>
+        <div class="field"><span class="lbl">Děti</span>${multi('kids', KIDS)}</div>
+        <div class="field"><span class="lbl">Víra</span>${multi('religion', RELIGION)}</div>
+        ${premium ? '' : '<a class="adv-cover" href="#/premium" aria-label="Odemknout pokročilé filtry"></a>'}
+      </div>
+      <p class="small muted" style="margin-top:6px">Lidé, kteří údaj nevyplnili, se ti zobrazí i tak.</p>
+      <button class="btn btn-primary" type="submit" style="margin:18px 0 calc(24px + var(--safe-b))">Použít filtry</button>
+    </form></div>`;
+  bindSeg('f-mode', (v) => { E.mode = v; $('#f-lookwrap').hidden = v === 'pratele'; });
+  bindSeg('f-look', (v) => (E.looking_for = v));
+  const pair = (a, b, out, unit) => {
+    const upd = () => { let x = +$(a).value, y = +$(b).value; if (x > y) [x, y] = [y, x]; $(out).textContent = `${x}–${y} ${unit}`; };
+    $(a).oninput = upd; $(b).oninput = upd;
+  };
+  pair('#f-min', '#f-max', '#f-agev', 'let');
+  pair('#f-hmin', '#f-hmax', '#f-hv', 'cm');
+  $('#f-dist').oninput = (e) => { $('#f-distv').textContent = +e.target.value >= 1000 ? 'kdekoli' : e.target.value + ' km'; };
+  $$('[data-multi]').forEach((g) => $$('button', g).forEach((b) => (b.onclick = () => {
+    const k = g.dataset.multi, v = b.dataset.v, arr = f[k] = f[k] || [];
+    const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v);
+    b.setAttribute('aria-pressed', arr.includes(v));
+  })));
+  $('[data-reset]').onclick = () => { S.me.filters = {}; renderFilters(); };
+  $('#ff').onsubmit = async (e) => {
+    e.preventDefault();
+    let a = +$('#f-min').value, b = +$('#f-max').value; if (a > b) [a, b] = [b, a];
+    let h1 = +$('#f-hmin').value, h2 = +$('#f-hmax').value; if (h1 > h2) [h1, h2] = [h2, h1];
+    const filters = { verified_only: $('#f-ver').checked, min_height: h1 > 140 ? h1 : null, max_height: h2 < 210 ? h2 : null,
+      goals: f.goals || [], smoking: f.smoking || [], kids: f.kids || [], religion: f.religion || [] };
+    const row = { mode: E.mode, looking_for: E.mode === 'pratele' ? 'vsechny' : E.looking_for, min_age: a, max_age: b, max_distance_km: +$('#f-dist').value };
+    if (premium) row.filters = filters;
+    const { error } = await sb.from('profiles').update(row).eq('id', uid());
+    if (error) return toast(errText(error));
+    Object.assign(S.me, row); S.candidates = [];
+    toast('Filtry uloženy ✓'); go('#/discover');
+  };
+}
+
+// ---------------------------------------------------------------------
+// Nastavení účtu
+// ---------------------------------------------------------------------
+async function renderSettings() {
+  const p = S.me;
+  const user = S.session.user;
+  const notify = { matches: true, messages: true, likes: true, ...(p.notify || {}) };
+  const idents = (user.identities || []).map((x) => x.provider);
+  const hasEmail = idents.includes('email');
+  const row = (icon, label, right = '', attrs = '') => `<button type="button" class="settings-row" ${attrs}><span>${icon}${label}</span>${right || I.chevron({ size: 18, color: '#A897C4' })}</button>`;
+  const sw = (id, on, label) => `<label class="settings-row"><span>${label}</span><span class="switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span class="sl"></span></span></label>`;
+  app.innerHTML = `${waves()}<div class="screen">
+    <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Nastavení</h1><span style="width:44px"></span></div>
+    <div class="scroll pad" style="padding-top:6px">
+      <p class="label-caps">Profil</p>
+      <div class="group">
+        ${sw('s-pause', p.paused, `${I.pause({ size: 18, color: '#C084FC' })} Pozastavit profil<small>Nikdo nový tě neuvidí, shody a zprávy zůstanou.</small>`)}
+        <a class="settings-row" href="#/edit"><span>${I.user({ size: 18, color: '#C084FC' })} Upravit profil</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+        <a class="settings-row" href="#/filters"><span>${I.sliders({ size: 18, color: '#C084FC' })} Filtry</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+        ${!p.verified ? `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: '#C084FC' })} Ověřit profil</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>` : ''}
+      </div>
+      <p class="label-caps">Upozornění</p>
+      <div class="group">
+        ${pushSupported() ? sw('s-push', false, `${I.bell({ size: 18, color: '#C084FC' })} Push notifikace`) : '<div class="settings-row"><span class="muted">Tenhle prohlížeč notifikace neumí.</span></div>'}
+        ${sw('n-matches', notify.matches, 'Nové shody')}
+        ${sw('n-messages', notify.messages, 'Nové zprávy')}
+        ${sw('n-likes', notify.likes, 'Super Like a lajky')}
+      </div>
+      <p class="label-caps">Účet</p>
+      <div class="group">
+        <div class="settings-row"><span>${I.mail({ size: 18, color: '#C084FC' })} E-mail</span><span class="small muted">${esc(user.email || '–')}</span></div>
+        <div class="settings-row"><span>${I.key({ size: 18, color: '#C084FC' })} Přihlášení</span><span class="small muted">${idents.map((x) => (x === 'email' ? 'E-mail' : (PROVIDERS[x] || { name: x }).name)).join(', ') || '–'}</span></div>
+        ${row(I.mail({ size: 18, color: '#C084FC' }), 'Změnit e-mail', '', 'data-k="email"')}
+        ${row(I.key({ size: 18, color: '#C084FC' }), hasEmail ? 'Změnit heslo' : 'Nastavit heslo', '', 'data-k="pass"')}
+        <a class="settings-row" href="#/premium"><span>${I.crown({ size: 18, color: '#FBBF24' })} Předplatné</span><span class="small muted">${S.plan ? `${planName[S.plan]} do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}` : 'Žádné'}</span></a>
+      </div>
+      <p class="label-caps">Bezpečí</p>
+      <div class="group" id="s-blocks"><div class="settings-row"><span class="muted">Načítám blokované…</span></div></div>
+      <p class="label-caps">Informace</p>
+      <div class="group">
+        <a class="settings-row" href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener"><span>Ochrana soukromí</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+        <a class="settings-row" href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener"><span>Podmínky používání</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+        <a class="settings-row" href="mailto:${esc(C.SUPPORT_EMAIL)}"><span>Napsat podpoře</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+      </div>
+      <div class="group" style="margin-top:18px">
+        ${row(I.logout({ size: 18, color: '#C084FC' }), 'Odhlásit se', ' ', 'data-k="logout"')}
+        ${row(I.trash({ size: 18, color: '#FCA5A5' }), '<span style="color:#FCA5A5">Smazat účet</span>', ' ', 'data-k="delete"')}
+      </div>
+      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Jiskra · MS Studio · verze 3.0</p>
+    </div></div>`;
+
+  $('#s-pause').onchange = async (e) => {
+    const paused = e.target.checked;
+    const { error } = await sb.from('profiles').update({ paused }).eq('id', uid());
+    if (error) { e.target.checked = !paused; return toast(errText(error)); }
+    S.me.paused = paused; toast(paused ? 'Profil pozastaven ⏸' : 'Profil je zase vidět 💜');
+  };
+  const tg = $('#s-push');
+  if (tg) {
+    tg.checked = await pushEnabled();
+    tg.onchange = async () => { if (tg.checked) tg.checked = await enablePush(); else await disablePush(); };
+  }
+  ['matches', 'messages', 'likes'].forEach((k) => ($(`#n-${k}`).onchange = async (e) => {
+    notify[k] = e.target.checked;
+    const { error } = await sb.from('profiles').update({ notify }).eq('id', uid());
+    if (error) return toast(errText(error));
+    S.me.notify = { ...notify };
+  }));
+  $('[data-k=email]').onclick = async () => {
+    const email = await dialog({ title: 'Nový e-mail', text: 'Pošleme ti potvrzovací odkaz na novou adresu.', input: true, placeholder: 'novy@email.cz', ok: 'Změnit' });
+    if (!email) return;
+    const { error } = await sb.auth.updateUser({ email: email.trim() }, { emailRedirectTo: location.origin + location.pathname });
+    toast(error ? errText(error) : 'Zkontroluj e-mail a potvrď změnu.', 4000);
+  };
+  $('[data-k=pass]').onclick = async () => {
+    const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, placeholder: 'nové heslo', ok: 'Uložit' });
+    if (!pw) return;
+    if (pw.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
+    const { error } = await sb.auth.updateUser({ password: pw });
+    toast(error ? errText(error) : 'Heslo změněno ✓');
+  };
+  $('[data-k=logout]').onclick = () => sb.auth.signOut();
+  $('[data-k=delete]').onclick = async () => {
+    if (!(await dialog({ title: 'Smazat účet?', text: 'Smaže se profil, fotky, shody i všechny zprávy. Nejde to vrátit.' + (S.plan ? ' Předplatné nejdřív zruš v Google Play, jinak se bude dál strhávat.' : '') + ' Pokud si chceš jen odpočinout, můžeš profil pozastavit.', ok: 'Smazat navždy', danger: true }))) return;
     const { error } = await sb.rpc('delete_my_account');
     if (error) return toast(errText(error));
     await sb.auth.signOut();
     toast('Účet byl smazán.');
   };
-  const tg = $('#pushToggle');
-  if (tg) {
-    tg.checked = await pushEnabled();
-    tg.onchange = async () => { if (tg.checked) tg.checked = await enablePush(); else await disablePush(); };
-  }
+
+  const renderBlocks = async () => {
+    const { data } = await sb.rpc('my_blocks');
+    const box = $('#s-blocks'); if (!box) return;
+    box.innerHTML = data && data.length ? data.map((b) => `<div class="settings-row"><span><div class="avatar xs" style="${bgImg(b.photo_url)}">${b.photo_url ? '' : initial(b.name)}</div>${esc(b.name)}</span>
+        <button type="button" class="btn btn-outline btn-sm" data-unblock="${esc(b.id)}">Odblokovat</button></div>`).join('')
+      : `<div class="settings-row"><span>${I.ban({ size: 18, color: '#C084FC' })} Blokovaní lidé</span><span class="small muted">Nikdo</span></div>`;
+    $$('[data-unblock]', box).forEach((b) => (b.onclick = async () => {
+      const { error } = await sb.from('blocks').delete().eq('blocker', uid()).eq('blocked', b.dataset.unblock);
+      if (error) return toast(errText(error));
+      toast('Odblokováno.'); renderBlocks();
+    }));
+  };
+  renderBlocks();
 }
 
 // ---------------------------------------------------------------------
@@ -1527,9 +2155,9 @@ async function renderAdmin(tab) {
 // Předplatné
 // ---------------------------------------------------------------------
 const TIERS = {
-  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Žádné reklamy'],
-  gold: ['Vše z Plus', 'Uvidíš, kdo tě lajkl', '5 Super Like každý týden'],
-  platinum: ['Vše z Gold', 'Tvoje lajky uvidí jako první', 'Přednostní zobrazení v okolí'],
+  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Pokročilé filtry (výška, cíl, děti…)', 'Žádné reklamy'],
+  gold: ['Vše z Plus', 'Uvidíš, kdo tě lajkl', 'Kdo mě viděl', 'Top výběr: 10 shod denně', '1 Boost měsíčně', '5 Super Like každý týden'],
+  platinum: ['Vše z Gold', '3 Boosty měsíčně', 'Tvoje lajky uvidí jako první', 'Přednostní zobrazení v okolí'],
 };
 const PERIOD_LABEL = { 1: '1 měsíc', 6: '6 měsíců', 12: '12 měsíců' };
 const PERIOD_BADGE = { 1: '', 6: 'Oblíbené', 12: 'Nejvýhodnější' };

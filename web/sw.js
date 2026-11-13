@@ -1,6 +1,6 @@
 // Service worker – aplikace se rychle načte a funguje i při slabém signálu.
 // Při každé nové verzi aplikace zvyš číslo VERZE.
-const VERZE = 'jiskra-v4';
+const VERZE = 'jiskra-v5';
 const SOUBORY = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png'];
 
