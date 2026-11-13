@@ -1971,7 +1971,7 @@ async function renderSettings() {
         ${row(I.logout({ size: 18, color: '#C084FC' }), 'Odhlásit se', ' ', 'data-k="logout"')}
         ${row(I.trash({ size: 18, color: '#FCA5A5' }), '<span style="color:#FCA5A5">Smazat účet</span>', ' ', 'data-k="delete"')}
       </div>
-      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Jiskra · MS Studio · verze 3.0</p>
+      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Jiskra · MS Studio · verze 1.0</p>
     </div></div>`;
 
   $('#s-pause').onchange = async (e) => {
