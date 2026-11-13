@@ -2255,7 +2255,19 @@ async function restorePlay() {
 // ---------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------
+// Telefon se zapnutou „Verzí pro počítač“ zobrazí aplikaci malinkou – upozorníme na to
+function desktopModeHint() {
+  try {
+    const touch = matchMedia('(pointer: coarse)').matches;
+    if (touch && window.innerWidth >= 800 && Math.min(screen.width, screen.height) < 600 && !sessionStorage.getItem('jiskra-dm')) {
+      sessionStorage.setItem('jiskra-dm', '1');
+      setTimeout(() => toast('Aplikace je zmenšená: v Chromu (⋮) vypni „Verze pro počítač“.', 7000), 1200);
+    }
+  } catch { /* nevadí */ }
+}
+
 async function boot() {
+  desktopModeHint();
   loading();
   if (!configured) return route();
   const { data } = await sb.auth.getSession();
