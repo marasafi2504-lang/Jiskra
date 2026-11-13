@@ -275,7 +275,7 @@ const waves = (variant = 'top') => variant === 'top'
       <path d="M0 700 C120 640 270 780 390 660" stroke="#9333EA" stroke-opacity=".5" stroke-width="2"/></svg>`;
 
 function tabbar(active) {
-  const unread = S.matches.reduce((n, m) => n + (m.unread || 0), 0) + (S.reqCount || 0);
+  const unread = S.matches.reduce((n, m) => n + (m.unread || 0), 0) + (S.reqCount || 0) + (S.supUnread || 0);
   const t = (hash, key, label, icon) => `
     <a href="${hash}" ${active === key ? 'aria-current="page"' : ''}>
       ${icon({ color: active === key ? '#C084FC' : '#A897C4' })}${label}
@@ -343,9 +343,10 @@ async function payCoins(cost, what, rpc, args = {}) {
 }
 
 async function loadMatches() {
-  const [{ data, error }, { data: rc }] = await Promise.all([sb.rpc('my_matches3'), sb.rpc('requests_count')]);
+  const [{ data, error }, { data: rc }, { data: su }, { data: au }] = await Promise.all([sb.rpc('my_matches3'), sb.rpc('requests_count'),
+    sb.rpc('support_unread'), S.me && S.me.is_admin ? sb.rpc('admin_support_unread') : Promise.resolve({ data: 0 })]);
   if (!error) S.matches = data || [];
-  S.reqCount = rc || 0;
+  S.reqCount = rc || 0; S.supUnread = su || 0; S.adminUnread = au || 0;
 }
 
 // Zpráva bez shody (žádost). Vrací true, když se odeslala.
@@ -454,6 +455,12 @@ function subscribeGlobal() {
       toast('Máš novou shodu! 💜');
       if (currentView() === 'chats') renderChats(); else updateTabbar();
     })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (p) => {
+      if (!p.new.from_admin || currentView() === 'support') return;
+      S.supUnread = (S.supUnread || 0) + 1;
+      toast('Podpora Jiskry ti odpověděla 💜');
+      if (currentView() === 'chats') renderChats(); else updateTabbar();
+    })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (p) => {
       const openChat = location.hash.startsWith('#/chat/') && location.hash.split('/')[2] === p.new.match_id;
       if (openChat) return;
@@ -488,6 +495,7 @@ async function route() {
     case 'premium': return renderPremium();
     case 'verify': return renderVerify();
     case 'filters': return renderFilters();
+    case 'support': return renderSupport();
     case 'settings': return renderSettings();
     case 'coins': return renderCoins();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats') : go('#/profile');
@@ -1498,6 +1506,14 @@ async function renderChats() {
   app.innerHTML = `<div class="screen">
     <div class="topbar"><h1>Zprávy</h1></div>
     <div class="scroll">
+      <div class="pad" style="padding-top:0;padding-bottom:8px">
+        <a class="list-item pinned" href="#/support">
+          ${logo(56)}
+          <div class="body"><div class="top"><span class="title">Podpora Jiskry ${verifiedBadge(15)}</span><span class="small muted">📌</span></div>
+          <div class="top" style="align-items:center"><div class="sub ${S.supUnread ? 'new' : ''}">${S.supUnread ? 'Máš novou odpověď od týmu Jiskry' : 'Máš otázku nebo problém? Napiš nám.'}</div>
+          ${S.supUnread ? `<span class="count">${S.supUnread}</span>` : ''}</div></div></a>
+        ${S.me.is_admin && S.adminUnread ? `<a class="list-item pinned" href="#/admin/support">${I.gear({ size: 30, color: '#FBBF24' })}<div class="body"><div class="title">Podpora – čeká ${S.adminUnread} ${S.adminUnread === 1 ? 'zpráva' : S.adminUnread < 5 ? 'zprávy' : 'zpráv'}</div><div class="sub">Odpověz uživatelům v Administraci</div></div></a>` : ''}
+      </div>
       ${fresh.length ? `<p class="label-caps" style="padding:0 24px">Nové shody</p>
       <div class="hscroll">${fresh.map((m) => `
         <a href="#/chat/${m.match_id}"><div class="avatar ring" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>${esc(m.name)}</a>`).join('')}
@@ -1505,6 +1521,7 @@ async function renderChats() {
       ${reqHTML}
       <div class="pad" style="padding-top:${fresh.length || R.length ? 20 : 4}px">
         <p class="label-caps" style="margin-bottom:2px">Konverzace</p>
+
         ${convos.length ? convos.map((m) => `<a class="list-item" href="#/chat/${m.match_id}">
             <div style="position:relative"><div class="avatar" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>${m.active_recently ? '<span class="active-dot abs"></span>' : ''}</div>
             <div class="body"><div class="top"><span class="title">${esc(m.name)} ${m.verified ? verifiedBadge(15) : ''}</span><span class="small muted">${timeLabel(m.last_at)}</span></div>
@@ -1937,6 +1954,96 @@ async function startCall(m, caller) {
 }
 
 // ---------------------------------------------------------------------
+// Podpora (asistent s častými dotazy + chat s člověkem)
+// ---------------------------------------------------------------------
+const FAQ = [
+  { k: ['boost', 'zviditel', 'víc lajk', 'vic lajk'], q: 'Jak funguje Boost?',
+    a: 'Boost tě na 30 minut posune mezi první profily, které lidé v okolí uvidí – obvykle to znamená mnohem víc zobrazení a lajků. Spustíš ho bleskem ⚡ nahoře v Objevuj. Gold má 1 Boost měsíčně v ceně, Platinum 3; jinak stojí 500 coinů.' },
+  { k: ['coin', 'mince', 'měna', 'mena'], q: 'Co jsou Boost Coiny?',
+    a: 'Coiny jsou měna v Jiskře. Koupíš je v Profil → ikona coinu. Utratíš je za Boost (500), Super Like navíc (100), odhalení lajku nebo zprávy (150), vrácení swipu (50) a zprávu navíc (100). Za ověření profilu dostaneš 500 coinů zdarma.' },
+  { k: ['předplat', 'predplat', 'zrušit', 'zrusit', 'gold', 'platinum', 'plus', 'platb', 'peníze', 'penize', 'vrátit', 'vratit', 'refund'], q: 'Předplatné a platby',
+    a: 'Předplatné spravuje Google Play. Zrušení: aplikace Obchod Play → ikona profilu → Platby a předplatné → Předplatná → Jiskra → Zrušit. Placené funkce ti zůstanou do konce zaplaceného období. Když se ti předplatné po nákupu neukázalo, otevři Předplatné a klepni na „Obnovit nákup“.' },
+  { k: ['ověř', 'over', 'selfie', 'fajfk', 'odznak'], q: 'Ověření profilu',
+    a: 'V Profilu klepni na „Ověř se selfie“, vyfoť se se zadaným gestem a odešli. Kontrolujeme ručně, obvykle do 24 hodin. Ověřený profil dostane fialový štít a 500 coinů jako odměnu.' },
+  { k: ['nikoho', 'nikdo', 'žádn', 'zadn', 'prázdn', 'prazdn', 'objevuj'], q: 'V Objevuj nikoho nevidím',
+    a: 'Zkus v Objevuj → Filtry rozšířit věk a vzdálenost a zkontroluj, že máš povolenou polohu (Profil → Upravit profil → Poloha). Pokud máš profil pozastavený, zapni ho v Nastavení. Noví lidé přibývají každý den.' },
+  { k: ['notifik', 'upozorn', 'oznámen', 'oznamen'], q: 'Nechodí mi upozornění',
+    a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Jiskra → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Jiskru úsporu baterie.' },
+  { k: ['smaz', 'smaž', 'zruš účet', 'zrus ucet', 'odstran', 'pauz', 'pozastav'], q: 'Smazání nebo pozastavení účtu',
+    a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.' },
+  { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
+    a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Pokud jsi v ohrožení, volej 112.' },
+  { k: ['heslo', 'přihl', 'prihl', 'login', 'e-mail', 'email'], q: 'Problém s přihlášením',
+    a: 'Na přihlašovací obrazovce klepni na „Zapomenuté heslo“ – pošleme ti odkaz. Pokud ses registroval(a) přes Google nebo Facebook, přihlas se stejným tlačítkem. E-mail a heslo změníš v Profil → Nastavení.' },
+  { k: ['zpráv', 'zprav', 'napsat', 'bez shody', 'psát', 'psat'], q: 'Jak napsat někomu bez shody?',
+    a: 'V Objevuj klepni na ✈️ a napiš zprávu. Zdarma můžeš napsat 1 člověku denně (Gold 3, Platinum 5), další zprávy stojí 100 coinů. Když ti dotyčný odpoví, vznikne shoda.' },
+];
+const faqFind = (t) => { const s = t.toLowerCase(); return FAQ.find((f) => f.k.some((k) => s.includes(k))); };
+
+async function renderSupport() {
+  const me = uid();
+  app.innerHTML = `<div class="screen" style="height:calc(100dvh - var(--badge) - var(--safe-t))">
+    <div class="chat-head">
+      <a class="icon-btn ghost" href="#/chats" aria-label="Zpět na zprávy">${I.back({ size: 22, color: '#fff' })}</a>
+      <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Jiskry</b><span class="small" style="color:#6EE7B7">Asistent hned · člověk obvykle do 24 h</span></div></div>
+      <a class="icon-btn ghost" href="mailto:${esc(C.SUPPORT_EMAIL)}" aria-label="Napsat e-mail podpoře">${I.mail({ size: 22, color: '#C084FC' })}</a>
+    </div>
+    <div class="messages" id="sMsgs"></div>
+    <div class="tips" id="sTips"></div>
+    <form class="composer" id="sForm">
+      <label for="sIn" class="sr-only">Napiš podpoře</label>
+      <input class="input" id="sIn" autocomplete="off" maxlength="2000" placeholder="Napiš, s čím potřebuješ pomoct…" enterkeyhint="send">
+      <button class="send" type="submit" aria-label="Odeslat">${I.send({ size: 20, color: '#fff' })}</button>
+    </form>
+  </div>`;
+  const box = $('#sMsgs');
+  const bubble = (html, mine, cls = '') => {
+    const el = document.createElement('div');
+    el.className = `msg ${mine ? 'me' : ''} ${cls}`;
+    el.innerHTML = html;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+    return el;
+  };
+  const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: '#C084FC' })} Asistent</span>${esc(text)}`, false, 'bot');
+  const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Jiskry</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
+  const chips = () => {
+    $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button>';
+    $$('#sTips [data-f]').forEach((b) => (b.onclick = () => { const f = FAQ[+b.dataset.f]; bubble(esc(f.q), true); setTimeout(() => { bot(f.a); bot('Pomohlo to? Když ne, napiš mi dole, co přesně se děje – předám to našemu týmu.'); }, 350); }));
+    $('#sTips [data-human]').onclick = () => { bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
+  };
+
+  bot(`Ahoj! 👋 Jsem asistent Jiskry. Vyber si téma dole, nebo rovnou napiš, s čím potřebuješ pomoct. Když si nebudu vědět rady, předám tě člověku z našeho týmu.`);
+  const { data: hist } = await sb.from('support_messages').select('*').eq('user_id', me).order('created_at', { ascending: true }).limit(200);
+  (hist || []).forEach(human);
+  chips();
+  sb.rpc('support_mark_read').then(() => { S.supUnread = 0; });
+
+  S.chatChannel = sb.channel('support-' + me)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `user_id=eq.${me}` }, (p) => {
+      if (!p.new.from_admin) return;
+      human(p.new); sb.rpc('support_mark_read');
+    })
+    .subscribe();
+
+  let acked = false;
+  $('#sForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const inp = $('#sIn'); const text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    const { error } = await sb.rpc('support_send', { msg: text });
+    if (error) { inp.value = text; return toast(String(error.message).includes('too_many') ? 'Napsal(a) jsi toho hodně najednou, zkus to prosím za chvíli.' : errText(error)); }
+    human({ body: text, from_admin: false, created_at: new Date().toISOString() });
+    const f = faqFind(text);
+    setTimeout(() => {
+      if (f) bot(`Možná pomůže tohle: ${f.a}`);
+      if (!acked) { bot('Tvoji zprávu jsem předal(a) týmu Jiskry. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜'); acked = true; }
+    }, 400);
+  };
+}
+
+// ---------------------------------------------------------------------
 // Profil
 // ---------------------------------------------------------------------
 async function renderProfile() {
@@ -2288,7 +2395,7 @@ function renderVerify() {
 // Administrace
 // ---------------------------------------------------------------------
 async function renderAdmin(tab) {
-  const tabs = { stats: 'Přehled', verify: 'Ověření', reports: 'Nahlášení', users: 'Uživatelé' };
+  const tabs = { stats: 'Přehled', support: 'Podpora', verify: 'Ověření', reports: 'Nahlášení', users: 'Uživatelé' };
   app.innerHTML = `<div class="screen">
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Administrace</h1><span style="width:44px"></span></div>
     <div class="admin-tabs">${Object.entries(tabs).map(([k, v]) => `<a href="#/admin/${k}" ${k === tab ? 'aria-current="page"' : ''}>${v}</a>`).join('')}</div>
@@ -2341,6 +2448,34 @@ async function renderAdmin(tab) {
       if (!(await dialog({ title: `Zablokovat ${b.dataset.name}?`, text: 'Uživatel se přestane zobrazovat ostatním a nebude moct psát ani lajkovat.', ok: 'Zablokovat', danger: true }))) return;
       const { error: e } = await sb.rpc('admin_ban', { uid: b.dataset.ban, ban: true }); if (e) return toast(errText(e)); toast('Zablokováno.'); renderAdmin('reports');
     }));
+  }
+
+  if (tab === 'support') {
+    const openThread = async (u) => {
+      const { data, error } = await sb.rpc('admin_support_thread', { uid: u.user_id });
+      if (error) return fail(error);
+      box.innerHTML = `<button class="link-btn" data-backlist>${I.back({ size: 16 })} Všechny konverzace</button>
+        <div class="adm-card" style="margin-top:10px"><div class="adm-top"><div style="display:flex;gap:10px;align-items:center"><div class="avatar sm" style="${bgImg(u.photo_url)}">${u.photo_url ? '' : initial(u.name)}</div>
+          <div><b>${esc(u.name)}</b><div class="small muted">${esc(u.email || '')}</div></div></div></div>
+          <div class="messages" style="padding:8px 0;max-height:none">${data.map((m) => `<div class="msg ${m.from_admin ? 'me' : ''}">${esc(m.body)}<time>${timeLabel(m.created_at)}</time></div>`).join('')}</div>
+          <div class="field"><label class="sr-only" for="aRep">Odpověď</label><textarea class="input" id="aRep" maxlength="2000" placeholder="Napiš odpověď…" style="height:100px"></textarea></div>
+          <div class="row">${u.email ? `<a class="btn btn-outline btn-sm" href="mailto:${esc(u.email)}">${I.mail({ size: 16 })} E-mailem</a>` : ''}<button class="btn btn-primary btn-sm" data-send>Odeslat odpověď</button></div></div>`;
+      $('[data-backlist]', box).onclick = () => renderAdmin('support');
+      $('[data-send]', box).onclick = async () => {
+        const t = $('#aRep').value.trim(); if (!t) return;
+        const { error: e } = await sb.rpc('admin_support_reply', { uid: u.user_id, msg: t });
+        if (e) return toast(errText(e));
+        toast('Odesláno ✓'); openThread(u);
+      };
+    };
+    const { data, error } = await sb.rpc('admin_support_threads');
+    if (error) return fail(error);
+    if (!data.length) { box.innerHTML = '<div class="empty"><h1>Žádné dotazy</h1><p class="lead">Až někdo napíše podpoře, uvidíš to tady a přijde ti upozornění.</p></div>'; return; }
+    box.innerHTML = data.map((u, i) => `<button class="list-item" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left" data-th="${i}">
+      <div class="avatar" style="${bgImg(u.photo_url)}">${u.photo_url ? '' : initial(u.name)}</div>
+      <div class="body"><div class="top"><span class="title">${esc(u.name)}</span><span class="small muted">${timeLabel(u.last_at)}</span></div>
+      <div class="top" style="align-items:center"><div class="sub ${u.unread ? 'new' : ''}">${u.last_from_admin ? 'Ty: ' : ''}${esc(u.last_body)}</div>${u.unread ? `<span class="count">${u.unread}</span>` : ''}</div></div></button>`).join('');
+    $$('[data-th]', box).forEach((b) => (b.onclick = () => openThread(data[+b.dataset.th])));
   }
 
   if (tab === 'users') {
