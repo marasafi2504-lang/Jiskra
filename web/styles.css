@@ -489,3 +489,14 @@ a.like-tile.blur::before { content: ''; position: absolute; inset: 0; background
 .coin-banner { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(251, 191, 36, .1); border: 1px solid rgba(251, 191, 36, .35); color: #FDE68A; text-decoration: none; font-size: 13px; }
 .coin-banner span { flex: 1; }
 .coin-banner b { color: #fff; display: block; font-size: 14px; }
+
+/* zprávy bez shody */
+.req { display: flex; gap: 12px; padding: 14px; border-radius: 18px; background: linear-gradient(135deg, rgba(240, 171, 252, .10), rgba(147, 51, 234, .14)); border: 1px solid rgba(240, 171, 252, .35); margin-bottom: 10px; }
+.req .body { flex: 1; min-width: 0; }
+.req .title { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+.req-text { margin: 6px 0 10px; font-size: 14px; line-height: 1.4; color: var(--text-2); word-wrap: break-word; }
+.req-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.req-btns .btn-sm { height: 38px; padding: 0 14px; font-size: 13px; }
+.avatar.blurred { background: linear-gradient(135deg, #E6A3C4, #5A2F86); filter: saturate(.8); }
+.blur-text { filter: blur(5px); user-select: none; }
+.swipe-actions { gap: 12px; }

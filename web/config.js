@@ -56,5 +56,5 @@ export const COIN_PACKS = [
   { sku: 'jiskra_coins_10000', coins: 10000, bonus: 2000, price: 3000, badge: 'Nejvýhodnější' },
 ];
 // Ceny za coiny – musí odpovídat funkci coin_price() v databázi
-export const COIN_COSTS = { boost: 500, super: 100, reveal: 150, rewind: 50 };
+export const COIN_COSTS = { boost: 500, super: 100, reveal: 150, rewind: 50, message: 100 };
 export const COIN_VERIFY_BONUS = 500;

@@ -113,6 +113,11 @@ function errText(e) {
   if (m.includes('super_limit')) return 'Super Like ti tento týden došly.';
   if (m.includes('blocked')) return 'S tímhle člověkem už nemůžeš komunikovat.';
   if (m.includes('bad_media') || m.includes('bad_sticker')) return 'Tuhle přílohu nejde poslat.';
+  if (m.includes('request_limit')) return 'Dnešní zprávy zdarma došly.';
+  if (m.includes('already_sent')) return 'Tomuhle člověku už jsi napsal(a). Počkej, až odpoví.';
+  if (m.includes('already_match')) return 'Už máte shodu – napiš mu/jí v Zprávách.';
+  if (m.includes('they_wrote_you')) return 'Tenhle člověk ti už napsal! Najdeš ho ve Zprávách.';
+  if (m.includes('bad_message')) return 'Zpráva musí mít 1–500 znaků.';
   if (m.includes('not_enough_coins')) return 'Nemáš dost coinů.';
   if (m.includes('nothing_to_reveal')) return 'Žádný další lajk k odhalení.';
   if (m.includes('nothing_to_rewind')) return 'Není co vrátit.';
@@ -270,7 +275,7 @@ const waves = (variant = 'top') => variant === 'top'
       <path d="M0 700 C120 640 270 780 390 660" stroke="#9333EA" stroke-opacity=".5" stroke-width="2"/></svg>`;
 
 function tabbar(active) {
-  const unread = S.matches.reduce((n, m) => n + (m.unread || 0), 0);
+  const unread = S.matches.reduce((n, m) => n + (m.unread || 0), 0) + (S.reqCount || 0);
   const t = (hash, key, label, icon) => `
     <a href="${hash}" ${active === key ? 'aria-current="page"' : ''}>
       ${icon({ color: active === key ? '#C084FC' : '#A897C4' })}${label}
@@ -338,8 +343,30 @@ async function payCoins(cost, what, rpc, args = {}) {
 }
 
 async function loadMatches() {
-  const { data, error } = await sb.rpc('my_matches3');
+  const [{ data, error }, { data: rc }] = await Promise.all([sb.rpc('my_matches3'), sb.rpc('requests_count')]);
   if (!error) S.matches = data || [];
+  S.reqCount = rc || 0;
+}
+
+// Zpráva bez shody (žádost). Vrací true, když se odeslala.
+async function sendRequest(p) {
+  const msg = await dialog({ title: `💌 Zpráva – ${p.name}`, text: 'Zpráva dorazí, i když zatím nemáte shodu. Zdarma můžeš napsat 1 člověku denně (Gold 3, Platinum 5).', input: true, placeholder: 'Ahoj! Zaujalo mě…', ok: 'Odeslat 💌' });
+  if (!msg) return false;
+  const args = { pid: p.id, msg: msg.slice(0, 500) };
+  let { data, error } = await sb.rpc('send_request', args);
+  if (error && String(error.message).includes('request_limit')) {
+    const r = await payCoins(C.COIN_COSTS.message, 'Zpráva navíc', 'send_request', { ...args, with_coins: true });
+    if (!r) return false;
+    data = r; error = null;
+  }
+  if (error) { toast(errText(error), 3500); return false; }
+  S.candidates = S.candidates.filter((c) => c.id !== p.id);
+  if (data === 'matched') {
+    await loadMatches();
+    const m = S.matches.find((x) => x.other_id === p.id);
+    if (m) showMatch(p, m.match_id); else toast('Máte shodu! 💜');
+  } else toast(`Zpráva odeslána 💌 ${p.name} ji uvidí ve Zprávách.`, 3500);
+  return true;
 }
 
 function touchActive() {
@@ -994,6 +1021,7 @@ function detailHTML(p, actions) {
     ${actions && actions.some((a) => a !== 'report') ? `<div class="d-actions">
       ${actions.includes('pass') ? `<button class="round lg" data-k="pass" aria-label="Přeskočit">${I.x({ size: 26, color: '#F87171', sw: 2.6 })}</button>` : ''}
       ${actions.includes('super') ? `<button class="round md" data-k="super" aria-label="Super Like">${I.star({ size: 22, fill: '#60A5FA' })}</button>` : ''}
+      ${actions.includes('like') ? `<button class="round md" data-m aria-label="Napsat zprávu">${I.send({ size: 20, color: '#F0ABFC' })}</button>` : ''}
       ${actions.includes('like') ? `<button class="round like" data-k="like" aria-label="Líbí se mi">${I.heart({ size: 30, fill: '#fff' })}</button>` : ''}
     </div>` : ''}
   </div>`;
@@ -1009,6 +1037,8 @@ function openDetail(p, actions = [], onAction = null) {
   $$('[data-k]', el).forEach((b) => (b.onclick = () => { close(); if (onAction) onAction(b.dataset.k); }));
   const rep = $('[data-report]', el);
   if (rep) rep.onclick = async () => { close(); if (await reportUser(p.id, p.name) && onAction) onAction('removed'); };
+  const mb = $('[data-m]', el);
+  if (mb) mb.onclick = async () => { if (await sendRequest(p)) { close(); if (onAction) onAction('removed'); } };
   const blk = $('[data-block]', el);
   if (blk) blk.onclick = async () => { close(); if (await blockUser(p.id, p.name) && onAction) onAction('removed'); };
   if (S.me && p.id !== S.me.id) sb.rpc('record_view', { pid: p.id }).then(() => {});
@@ -1076,14 +1106,21 @@ async function renderDiscover() {
       <button class="round lg" data-k="pass" aria-label="Přeskočit">${I.x({ size: 26, color: '#F87171', sw: 2.6 })}</button>
       <button class="round like" data-k="like" aria-label="Líbí se mi">${I.heart({ size: 30, fill: '#fff' })}</button>
       <button class="round md" data-k="super" aria-label="Super Like">${I.star({ size: 22, fill: '#60A5FA' })}</button>
+      <button class="round md" data-k="msg" aria-label="Napsat zprávu bez shody">${I.send({ size: 20, color: '#F0ABFC' })}</button>
     </div>
     ${tabbar('discover')}
   </div>`;
-  $$('#actions button').forEach((b) => (b.onclick = () => (b.dataset.k === 'undo' ? rewind() : swipe(b.dataset.k))));
+  $$('#actions button').forEach((b) => (b.onclick = () => (b.dataset.k === 'undo' ? rewind() : b.dataset.k === 'msg' ? msgTop() : swipe(b.dataset.k))));
   $('#boostBtn').onclick = boostSheet;
   refreshBoostBtn();
   if (S.candidates.length < 3) await fetchCandidates();
   drawDeck();
+}
+
+async function msgTop() {
+  const p = S.candidates[0];
+  if (!p || p.ad) return;
+  if (await sendRequest(p)) drawDeck();
 }
 
 // ---------- Boost ----------
@@ -1182,7 +1219,7 @@ function attachCard(card, p) {
     ph.style.backgroundImage = `url('${photos[idx]}')`;
     $$('.pbars span', card).forEach((s, j) => s.classList.toggle('on', j === idx));
   };
-  $('[data-info]', card).addEventListener('click', (e) => { e.stopPropagation(); openDetail(p, ['pass', 'super', 'like'], (k) => swipe(k)); });
+  $('[data-info]', card).addEventListener('click', (e) => { e.stopPropagation(); openDetail(p, ['pass', 'super', 'like', 'report'], (k) => (k === 'removed' ? drawDeck() : swipe(k))); });
   card.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-info]')) return;
     dragging = true; moved = false; sx = e.clientX; sy = e.clientY; dx = dy = 0;
@@ -1205,7 +1242,7 @@ function attachCard(card, p) {
       const r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
       if (photos.length > 1 && x < 0.33) showPhoto(idx - 1);
       else if (photos.length > 1 && x > 0.67) showPhoto(idx + 1);
-      else openDetail(p, ['pass', 'super', 'like'], (k) => swipe(k));
+      else openDetail(p, ['pass', 'super', 'like', 'report'], (k) => (k === 'removed' ? drawDeck() : swipe(k)));
       return;
     }
     if (dx > 110) swipe('like');
@@ -1441,7 +1478,21 @@ function adCardHTML() {
 // Zprávy
 // ---------------------------------------------------------------------
 async function renderChats() {
-  await loadMatches();
+  const [, { data: reqs }] = await Promise.all([loadMatches(), sb.rpc('requests_inbox')]);
+  const R = reqs || [];
+  const reqHTML = R.length ? `<div class="pad" style="padding-top:4px;padding-bottom:6px">
+      <p class="label-caps" style="margin-bottom:8px">Napsali ti · ${R.length}</p>
+      ${R.map((r) => r.visible ? `<div class="req">
+          <div class="avatar" style="${bgImg(r.photo_url)}">${r.photo_url ? '' : initial(r.name)}</div>
+          <div class="body"><div class="title">${esc(r.name)}, ${esc(r.age)} ${r.verified ? verifiedBadge(15) : ''}<span class="small muted" style="margin-left:auto">${timeLabel(r.created_at)}</span></div>
+            <p class="req-text">${esc(r.body)}</p>
+            <div class="req-btns"><button class="btn btn-primary btn-sm" data-acc="${r.id}">Odpovědět</button><button class="btn btn-outline btn-sm" data-dec="${r.id}">Odmítnout</button><button class="link-btn" data-prof="${esc(r.sender)}">Profil</button></div></div></div>`
+        : `<div class="req locked">
+          <div class="avatar blurred">${I.lock({ size: 18, color: '#fff' })}</div>
+          <div class="body"><div class="title">Někdo ti napsal 💌<span class="small muted" style="margin-left:auto">${timeLabel(r.created_at)}</span></div>
+            <p class="req-text"><span>${esc(r.preview)}</span> <span class="blur-text">tohle si přečteš po odemčení</span></p>
+            <div class="req-btns"><button class="btn btn-outline btn-sm" data-rev="${r.id}">${I.coin({ size: 16 })} Odemknout za ${fmtCoins(C.COIN_COSTS.reveal)}</button><a class="btn btn-gold btn-sm" href="#/premium">Gold – všechny</a></div></div></div>`).join('')}
+    </div>` : '';
   const fresh = S.matches.filter((m) => !m.last_at);
   const convos = S.matches.filter((m) => m.last_at);
   app.innerHTML = `<div class="screen">
@@ -1451,19 +1502,41 @@ async function renderChats() {
       <div class="hscroll">${fresh.map((m) => `
         <a href="#/chat/${m.match_id}"><div class="avatar ring" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>${esc(m.name)}</a>`).join('')}
       </div>` : ''}
-      <div class="pad" style="padding-top:${fresh.length ? 20 : 4}px">
+      ${reqHTML}
+      <div class="pad" style="padding-top:${fresh.length || R.length ? 20 : 4}px">
         <p class="label-caps" style="margin-bottom:2px">Konverzace</p>
         ${convos.length ? convos.map((m) => `<a class="list-item" href="#/chat/${m.match_id}">
             <div style="position:relative"><div class="avatar" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>${m.active_recently ? '<span class="active-dot abs"></span>' : ''}</div>
             <div class="body"><div class="top"><span class="title">${esc(m.name)} ${m.verified ? verifiedBadge(15) : ''}</span><span class="small muted">${timeLabel(m.last_at)}</span></div>
             <div class="top" style="align-items:center"><div class="sub ${m.unread ? 'new' : ''}">${m.last_from_me ? 'Ty: ' : ''}${esc(msgPreview({ kind: m.last_kind, media_type: m.last_kind, body: m.last_body }))}</div>
             ${m.unread ? `<span class="count">${m.unread}</span>` : ''}</div></div></a>`).join('')
-          : `<p class="lead" style="margin-top:14px">${fresh.length ? 'Napiš některé ze svých shod nahoře.' : 'Zatím tu nic není. Jdi objevovat a lajkuj lidi, kteří tě zaujmou.'}</p>`}
+          : `<p class="lead" style="margin-top:14px">${fresh.length ? 'Napiš některé ze svých shod nahoře.' : 'Zatím tu nic není. Jdi objevovat a lajkuj lidi, kteří tě zaujmou – nebo jim rovnou napiš přes 💌.'}</p>`}
         <div style="margin-top:18px">${adSlotHTML('chats')}</div>
       </div>
     </div>
     ${tabbar('chats')}</div>`;
   fillAds(app);
+  $$('[data-rev]').forEach((b) => (b.onclick = async () => {
+    if (await payCoins(C.COIN_COSTS.reveal, 'Odemknout zprávu', 'reveal_request', { rid: b.dataset.rev })) renderChats();
+  }));
+  $$('[data-acc]').forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    const { data: mid, error } = await sb.rpc('answer_request', { rid: b.dataset.acc, accept: true });
+    if (error) { b.disabled = false; return toast(errText(error)); }
+    await loadMatches();
+    toast('Máte shodu! 💜');
+    go(`#/chat/${mid}`);
+  }));
+  $$('[data-dec]').forEach((b) => (b.onclick = async () => {
+    if (!(await dialog({ title: 'Odmítnout zprávu?', text: 'Odesílatel se to nedozví, jen už ti nebude moct napsat znovu.', ok: 'Odmítnout', danger: true }))) return;
+    const { error } = await sb.rpc('answer_request', { rid: b.dataset.dec, accept: false });
+    if (error) return toast(errText(error));
+    renderChats();
+  }));
+  $$('[data-prof]').forEach((b) => (b.onclick = async () => {
+    const { data } = await sb.rpc('profile_card3', { pid: b.dataset.prof });
+    if (data && data[0]) openDetail(data[0], ['report'], () => renderChats());
+  }));
 }
 
 function icebreakers(other) {
