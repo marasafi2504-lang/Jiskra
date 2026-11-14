@@ -106,7 +106,13 @@ function errText(e) {
   const m = (e && (e.message || e.error_description || e.msg)) || String(e);
   if (m.includes('Invalid login credentials')) return 'Špatný e-mail nebo heslo.';
   if (m.includes('User already registered')) return 'Tento e-mail už je zaregistrovaný. Přihlas se.';
-  if (m.includes('Password should be')) return 'Heslo musí mít aspoň 6 znaků.';
+  if (m.includes('Password should be') || m.includes('weak_password')) return 'Heslo je moc slabé. Použij aspoň 8 znaků.';
+  if (m.includes('should be different')) return 'Nové heslo musí být jiné než to staré.';
+  if (/Unable to validate email|invalid format|email address.*invalid|is invalid/i.test(m)) return 'Zkontroluj e-mail, vypadá neplatně.';
+  if (/rate limit|For security purposes|too many requests|over_email_send_rate_limit/i.test(m)) return 'Moc pokusů za sebou. Zkus to prosím za minutu.';
+  if (/Signups? not allowed|signup_disabled/i.test(m)) return 'Registrace je dočasně vypnutá.';
+  if (/expired|invalid.*token|otp/i.test(m)) return 'Odkaz už není platný. Pošli si nový.';
+  if (/Auth session missing/i.test(m)) return 'Přihlášení vypršelo. Přihlas se znovu.';
   if (m.includes('Email not confirmed')) return 'Nejdřív potvrď e-mail – poslali jsme ti odkaz.';
   if (m.includes('under_18')) return 'Aplikace je jen pro lidi starší 18 let.';
   if (m.includes('like_limit')) return 'Dnešní lajky došly. S předplatným jsou neomezené.';
@@ -125,7 +131,8 @@ function errText(e) {
   if (m.includes('banned')) return 'Tvůj účet je zablokovaný.';
   if (m.includes('too_many_photos')) return 'Maximálně 6 fotek.';
   if (m.includes('Failed to fetch') || m.includes('NetworkError')) return 'Nejde se připojit. Zkontroluj internet.';
-  return 'Něco se pokazilo: ' + m;
+  try { console.warn('errText', m); } catch (e) { /* nic */ }
+  return 'Něco se pokazilo. Zkus to prosím znovu.';
 }
 
 async function resizeImage(file, max = 1280) {
@@ -147,14 +154,16 @@ async function uploadPhoto(file, folder = '') {
 }
 
 // Vlastní dialogy (místo prompt/confirm)
-function dialog({ title, text = '', input = false, placeholder = '', ok = 'OK', cancel = 'Zrušit', danger = false }) {
+function dialog({ title, text = '', input = false, password = false, placeholder = '', ok = 'OK', cancel = 'Zrušit', danger = false }) {
   return new Promise((resolve) => {
     const w = document.createElement('div');
     w.className = 'sheet-wrap';
     w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dlgT">
       <h2 id="dlgT" style="margin:0;font-size:20px">${esc(title)}</h2>
       ${text ? `<p class="lead" style="font-size:15px">${esc(text)}</p>` : ''}
-      ${input ? `<label class="sr-only" for="dlgIn">${esc(title)}</label><textarea class="input" id="dlgIn" maxlength="500" placeholder="${esc(placeholder)}" style="height:100px"></textarea>` : ''}
+      ${input ? `<label class="sr-only" for="dlgIn">${esc(title)}</label>${password
+        ? `<input class="input" id="dlgIn" type="password" autocomplete="new-password" maxlength="72" placeholder="${esc(placeholder)}">`
+        : `<textarea class="input" id="dlgIn" maxlength="500" placeholder="${esc(placeholder)}" style="height:100px"></textarea>`}` : ''}
       <div class="row" style="margin-top:6px">
         ${cancel ? `<button class="btn btn-outline" data-k="no">${esc(cancel)}</button>` : ''}
         <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-k="yes">${esc(ok)}</button>
@@ -163,8 +172,9 @@ function dialog({ title, text = '', input = false, placeholder = '', ok = 'OK', 
     const done = (v) => { w.remove(); resolve(v); };
     w.onclick = (e) => { if (e.target === w) done(input ? null : false); };
     const no = $('[data-k=no]', w); if (no) no.onclick = () => done(input ? null : false);
-    $('[data-k=yes]', w).onclick = () => done(input ? ($('#dlgIn', w).value.trim() || null) : true);
+    $('[data-k=yes]', w).onclick = () => done(input ? ((password ? $('#dlgIn', w).value : $('#dlgIn', w).value.trim()) || null) : true);
     if (input) setTimeout(() => $('#dlgIn', w).focus(), 50);
+    if (password) $('#dlgIn', w).addEventListener('keydown', (ev) => { if (ev.key === 'Enter') $('[data-k=yes]', w).click(); });
   });
 }
 
@@ -567,7 +577,10 @@ function renderAuth(mode = 'welcome') {
       <div class="field"><label for="email">E-mail</label>
         <input class="input" id="email" type="email" autocomplete="email" inputmode="email" required placeholder="tvuj@email.cz"></div>
       <div class="field"><label for="pass">Heslo</label>
-        <input class="input" id="pass" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="6" required placeholder="aspoň 6 znaků"></div>
+        <input class="input" id="pass" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="${signup ? 8 : 1}" required placeholder="${signup ? 'aspoň 8 znaků' : 'tvoje heslo'}"></div>
+      ${signup ? `<label class="check" style="display:flex;gap:10px;align-items:flex-start;margin:6px 0 4px;font-size:14px;color:var(--text-2);line-height:1.4">
+        <input type="checkbox" id="agree" style="margin-top:3px;width:18px;height:18px;flex:none">
+        <span>Je mi <b>18 a více let</b> a souhlasím s <a href="${C.TERMS_URL}" target="_blank" rel="noopener" style="color:var(--accent)">podmínkami</a> a <a href="${C.PRIVACY_URL}" target="_blank" rel="noopener" style="color:var(--accent)">ochranou soukromí</a>.</span></label>` : ''}
       <button class="btn btn-primary" type="submit" style="margin-top:8px">${signup ? 'Zaregistrovat se' : 'Přihlásit se'}</button>
     </form>
     <div style="display:flex;justify-content:space-between;margin-top:10px">
@@ -581,20 +594,24 @@ function renderAuth(mode = 'welcome') {
   if (reset) reset.onclick = async () => {
     const email = $('#email').value.trim();
     if (!email) return toast('Napiš nahoru svůj e-mail.');
+    if (!EMAIL_RE.test(email)) return toast('Zkontroluj e-mail, vypadá neplatně.');
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     toast(error ? errText(error) : 'Poslali jsme ti e-mail s odkazem na nové heslo.');
   };
   $('#authForm').onsubmit = async (e) => {
     e.preventDefault();
     const email = $('#email').value.trim(), password = $('#pass').value;
-    if (!email || password.length < 6) return toast('Vyplň e-mail a heslo (aspoň 6 znaků).');
+    if (!email || !password) return toast('Vyplň e-mail a heslo.');
+    if (!EMAIL_RE.test(email)) return toast('Zkontroluj e-mail, vypadá neplatně.');
+    if (signup && password.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
+    if (signup && !$('#agree').checked) return toast('Potvrď, že ti je 18 let a souhlasíš s podmínkami.');
     const btn = $('#authForm button[type=submit]');
     btn.disabled = true;
     try {
       if (signup) {
         const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
         if (error) throw error;
-        if (!data.session) { toast('Hotovo! Potvrď registraci odkazem v e-mailu.', 5000); renderAuth('signin'); return; }
+        if (!data.session) { renderCheckMail(email); return; }
       } else {
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -605,6 +622,22 @@ function renderAuth(mode = 'welcome') {
       btn.disabled = false;
     }
   };
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function renderCheckMail(email) {
+  $('#app').innerHTML = `
+  <div class="screen pad" style="padding-top:24px;text-align:center">
+    <div style="margin:80px 0 20px">${I.mail({ size: 56, color: '#C084FC' })}</div>
+    <h1 style="font-size:30px">Zkontroluj <span style="color:var(--accent)">e-mail</span></h1>
+    <p class="lead">Poslali jsme potvrzovací odkaz na<br><b>${esc(email)}</b>.<br>Klepni na něj a pak se vrať a přihlas se.</p>
+    <p class="lead" style="font-size:14px">Nic nepřišlo? Mrkni do spamu nebo hromadné pošty.</p>
+    <button class="btn btn-primary" data-act="signin" style="margin-top:18px">Přejít na přihlášení</button>
+    <button class="link-btn" data-act="back" style="margin-top:12px">Zpět</button>
+  </div>`;
+  $('[data-act=signin]').onclick = () => renderAuth('signin');
+  $('[data-act=back]').onclick = () => renderAuth('signup');
 }
 
 async function oauth(provider) {
@@ -2318,7 +2351,7 @@ async function renderSettings() {
     toast(error ? errText(error) : 'Zkontroluj e-mail a potvrď změnu.', 4000);
   };
   $('[data-k=pass]').onclick = async () => {
-    const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, placeholder: 'nové heslo', ok: 'Uložit' });
+    const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, password: true, placeholder: 'nové heslo', ok: 'Uložit' });
     if (!pw) return;
     if (pw.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
     const { error } = await sb.auth.updateUser({ password: pw });
@@ -2626,8 +2659,8 @@ async function boot() {
 
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
-      const pw = await dialog({ title: 'Nové heslo', text: 'Zadej nové heslo (aspoň 6 znaků).', input: true, ok: 'Uložit' });
-      if (pw && pw.length >= 6) {
+      const pw = await dialog({ title: 'Nové heslo', text: 'Zadej nové heslo (aspoň 8 znaků).', input: true, password: true, ok: 'Uložit' });
+      if (pw && pw.length >= 8) {
         const { error } = await sb.auth.updateUser({ password: pw });
         toast(error ? errText(error) : 'Heslo změněno.');
       }
