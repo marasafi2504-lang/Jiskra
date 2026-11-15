@@ -511,3 +511,4 @@ a.like-tile.blur::before { content: ''; position: absolute; inset: 0; background
 /* spodní menu vždy viditelné (i v prohlížeči na mobilu) */
 #app:has(.tabbar) { height: 100dvh; min-height: 0; }
 .tabbar { position: sticky; bottom: 0; flex-shrink: 0; }
+button.chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }

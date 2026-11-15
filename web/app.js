@@ -539,7 +539,7 @@ function renderAuth(mode = 'welcome') {
       <div class="brand">${logo(44)}<div><div class="brand-name">Plamínek</div><div class="brand-sub">seznamka</div></div></div>
       <div style="margin-top:56px">
         <p class="script">ahoj, rádi tě poznáme!</p>
-        <h1 class="hero-title">Najdi svou<br><em>jiskru</em></h1>
+        <h1 class="hero-title">Potkej někoho<br><em>doopravdy</em></h1>
         <div class="bar"></div>
         <p class="lead">Lidé ve tvém okolí, ověřené profily a kompatibilita podle osobnosti. Na lásku i nová přátelství.</p>
       </div>
@@ -1327,6 +1327,7 @@ async function swipe(kind) {
   }
   S.lastSwiped = p;
   S.swipes = (S.swipes || 0) + 1;
+  if (S.swipes % 40 === 0 && S.matches && S.matches.length) toast('Dobrá práce! 💜 Místo dalšího swipování zkus napsat někomu ze svých shod.', 4500);
   if (showAds() && S.swipes % (C.ADS.everySwipes || 8) === 0 && S.candidates.length > 1) S.candidates.splice(1, 0, { id: 'ad-' + S.swipes, ad: true });
   if (S.candidates.length < 4) fetchCandidates().then(() => { if (currentView() === 'discover' && !$('#deck .card')) drawDeck(); });
   if (kind !== 'pass') checkMatch(p);
@@ -1776,12 +1777,36 @@ async function renderChat(matchId) {
     } catch (err) { toast(errText(err)); }
   };
 
+  // Návrh rande – rychle z chatu na skutečné setkání
+  const dateSheet = () => {
+    const what = [['☕', 'kafe'], ['🚶', 'procházku'], ['🍷', 'drink'], ['🍕', 'jídlo'], ['🎬', 'kino']];
+    const when = ['dnes', 'zítra', 'o víkendu', 'příští týden'];
+    let wi = 0, ti = 2;
+    const w = sheet(`<h2 style="margin:0;font-size:20px">Navrhnout rande</h2>
+      <p class="lead" style="font-size:14px;margin:4px 0 10px">Méně psaní, víc skutečného setkání.</p>
+      <p class="label-caps" style="margin:0">Kam</p>
+      <div class="chips" id="dWhat" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px">${what.map((x, i) => `<button type="button" class="chip ${i === wi ? 'on' : ''}" data-i="${i}">${x[0]} ${x[1]}</button>`).join('')}</div>
+      <p class="label-caps" style="margin:0">Kdy</p>
+      <div class="chips" id="dWhen" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px">${when.map((x, i) => `<button type="button" class="chip ${i === ti ? 'on' : ''}" data-i="${i}">${x}</button>`).join('')}</div>
+      <div class="box" style="font-size:13px;line-height:1.5;color:var(--text-2);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:10px 12px;margin-bottom:12px">
+        🛡️ <b>Bezpečně:</b> první schůzka na veřejném místě, dej vědět kamarádovi, kam jdeš, a dopravu si zařiď sám/sama. Nikdy nikomu neposílej peníze.</div>
+      <button type="button" class="btn btn-primary" data-k="go">Poslat návrh</button>`);
+    const pick = (id, set) => $$(`#${id} .chip`, w).forEach((b) => (b.onclick = () => { $$(`#${id} .chip`, w).forEach((x) => x.classList.remove('on')); b.classList.add('on'); set(+b.dataset.i); }));
+    pick('dWhat', (i) => (wi = i)); pick('dWhen', (i) => (ti = i));
+    $('[data-k=go]', w).onclick = async () => {
+      w.remove();
+      await send({ body: `${what[wi][0]} Nezajdeme spolu na ${what[wi][1]}? Navrhuju ${when[ti]}. Co ty na to? 😊` });
+    };
+  };
+
   // Fotka / nálepka
   $('[data-act=more]').onclick = () => {
-    const w = sheet(`<div class="sheet-tabs"><button type="button" class="btn btn-outline btn-sm" data-k="photo">${I.image({ size: 18, color: '#C084FC' })} Poslat fotku</button></div>
+    const w = sheet(`<div class="sheet-tabs"><button type="button" class="btn btn-outline btn-sm" data-k="photo">${I.image({ size: 18, color: '#C084FC' })} Poslat fotku</button>
+      <button type="button" class="btn btn-primary btn-sm" data-k="date">☕ Navrhnout rande</button></div>
       <p class="label-caps" style="margin:6px 0 0">Nálepky</p>
       <div class="sticker-grid">${STICKERS.map((cp) => `<button type="button" data-cp="${cp}" aria-label="Nálepka"><img src="${stickerUrl(cp)}" alt="" loading="lazy" width="56" height="56"></button>`).join('')}</div>`);
     $('[data-k=photo]', w).onclick = () => { w.remove(); $('#imgIn').click(); };
+    $('[data-k=date]', w).onclick = () => { w.remove(); dateSheet(); };
     $$('[data-cp]', w).forEach((b) => (b.onclick = () => { w.remove(); send({ body: '✨', kind: 'image', media_type: 'sticker', image_url: stickerUrl(b.dataset.cp) }); }));
   };
 
@@ -1990,6 +2015,8 @@ async function startCall(m, caller) {
 // Podpora (asistent s častými dotazy + chat s člověkem)
 // ---------------------------------------------------------------------
 const FAQ = [
+  { k: ['bezpe', 'rande', 'schůzk', 'schuzk', 'podvod', 'peníze', 'penize'], q: 'Jak se bezpečně potkat?',
+    a: 'První schůzku dej na veřejné místo, řekni kamarádovi, kam a s kým jdeš, a dopravu si zařiď sám/sama. Nikdy nikomu z aplikace neposílej peníze ani kódy – i kdyby to znělo naléhavě. Hledej modrý odznak ověřeného profilu. Když ti někdo není příjemný, zablokuj ho a nahlas (tři tečky v chatu).' },
   { k: ['boost', 'zviditel', 'víc lajk', 'vic lajk'], q: 'Jak funguje Boost?',
     a: 'Boost tě na 30 minut posune mezi první profily, které lidé v okolí uvidí – obvykle to znamená mnohem víc zobrazení a lajků. Spustíš ho bleskem ⚡ nahoře v Objevuj. Gold má 1 Boost měsíčně v ceně, Platinum 3; jinak stojí 500 coinů.' },
   { k: ['coin', 'mince', 'měna', 'mena'], q: 'Co jsou Boost Coiny?',
