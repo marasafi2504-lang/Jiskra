@@ -1,5 +1,5 @@
 // =====================================================================
-// Jiskra – seznamka (PWA) · verze 3
+// Plamínek – seznamka (PWA) · verze 3
 // =====================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import * as C from './config.js';
@@ -468,7 +468,7 @@ function subscribeGlobal() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (p) => {
       if (!p.new.from_admin || currentView() === 'support') return;
       S.supUnread = (S.supUnread || 0) + 1;
-      toast('Podpora Jiskry ti odpověděla 💜');
+      toast('Podpora Plamínku ti odpověděla 💜');
       if (currentView() === 'chats') renderChats(); else updateTabbar();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (p) => {
@@ -515,7 +515,7 @@ async function route() {
 
 function renderSetup() {
   app.innerHTML = `${waves()}<div class="screen pad" style="justify-content:center;gap:16px">
-    <div class="brand">${logo()}<div><div class="brand-name">Jiskra</div><div class="brand-sub">seznamka</div></div></div>
+    <div class="brand">${logo()}<div><div class="brand-name">Plamínek</div><div class="brand-sub">seznamka</div></div></div>
     <h1>Skoro hotovo</h1>
     <p class="lead">Aplikace ještě není propojená s databází. Vyplň <b>config.js</b> (návod v NAVOD.md).</p></div>`;
 }
@@ -536,7 +536,7 @@ function renderAuth(mode = 'welcome') {
   if (mode === 'welcome') {
     app.innerHTML = `${waves()}
     <div class="screen pad" style="padding-top:40px;padding-bottom:calc(32px + var(--safe-b))">
-      <div class="brand">${logo(44)}<div><div class="brand-name">Jiskra</div><div class="brand-sub">seznamka</div></div></div>
+      <div class="brand">${logo(44)}<div><div class="brand-name">Plamínek</div><div class="brand-sub">seznamka</div></div></div>
       <div style="margin-top:56px">
         <p class="script">ahoj, rádi tě poznáme!</p>
         <h1 class="hero-title">Najdi svou<br><em>jiskru</em></h1>
@@ -736,7 +736,7 @@ function runQuiz() {
           <p class="script" style="transform:none">tvůj typ je</p>
           <h1 style="font-size:56px;margin:6px 0">${t}</h1>
           <p class="lead" style="font-size:20px;color:#fff;font-weight:700">${TYPES[t]}</p>
-          <p class="lead" style="margin:10px 0 26px">Podle typu ti Jiskra ukáže, jak moc si s ostatními sedíte.</p>
+          <p class="lead" style="margin:10px 0 26px">Podle typu ti Plamínek ukáže, jak moc si s ostatními sedíte.</p>
           <button class="btn btn-primary" data-ok>Použít ${t}</button>
           <button class="btn btn-outline" data-no style="margin-top:10px">Zavřít</button></div>`;
         $('[data-ok]', w).onclick = () => { w.remove(); resolve(t); };
@@ -860,7 +860,7 @@ function renderWizard() {
       <button type="button" class="btn btn-outline btn-sm" id="w-push">Povolit</button></div>` : ''}
     <label class="consent" for="w-consent">
       <input type="checkbox" id="w-consent" ${W.consent ? 'checked' : ''}>
-      <span>Souhlasím se zpracováním údajů o mém pohlaví a o tom, koho hledám, aby mi Jiskra mohla ukazovat vhodné lidi. Souhlas můžu kdykoli odvolat smazáním účtu. <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">Zásady ochrany osobních údajů</a></span>
+      <span>Souhlasím se zpracováním údajů o mém pohlaví a o tom, koho hledám, aby mi Plamínek mohl ukazovat vhodné lidi. Souhlas můžu kdykoli odvolat smazáním účtu. <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">Zásady ochrany osobních údajů</a></span>
     </label>`;
 
   app.innerHTML = `${waves()}<div class="screen">
@@ -914,7 +914,7 @@ function renderWizard() {
     if (n === 0) {
       if (!W.name) return toast('Vyplň jméno.');
       if (!W.birthdate) return toast('Vyplň datum narození.');
-      if (ageOf(W.birthdate) < 18) return toast('Jiskra je jen pro lidi starší 18 let.');
+      if (ageOf(W.birthdate) < 18) return toast('Plamínek je jen pro lidi starší 18 let.');
     }
     if (n === 2 && !W.photos.length) return toast('Přidej aspoň jednu fotku.');
     if (n < 5) { W.step++; return renderWizard(); }
@@ -929,7 +929,7 @@ function renderWizard() {
       if (error) throw error;
       await loadMe();
       if (W.wantPush) await enablePush();
-      toast('Vítej v Jiskře! 💜');
+      toast('Vítej v Plamínku! 💜');
       go('#/discover');
     } catch (err) { toast(errText(err)); btn.disabled = false; }
   };
@@ -1227,7 +1227,7 @@ function drawDeck() {
       <h1>Nikoho dalšího jsme nenašli</h1>
       <p class="lead">Zkus rozšířit věk nebo vzdálenost, případně přepnout na „Láska i přátelé“. Noví lidé přibývají každý den.</p>
       <a class="btn btn-outline btn-sm" href="#/filters">Upravit filtry</a>
-      <button class="link-btn" data-share>Pozvat kamarády do Jiskry</button>
+      <button class="link-btn" data-share>Pozvat kamarády do Plamínku</button>
     </div>`;
     $('#actions').style.visibility = 'hidden';
     $('[data-share]', deck).onclick = shareApp;
@@ -1247,7 +1247,7 @@ function drawDeck() {
 }
 
 async function shareApp() {
-  const data = { title: 'Jiskra – seznamka', text: 'Zkus Jiskru – seznamku s lidmi z okolí 💜', url: location.origin + location.pathname };
+  const data = { title: 'Plamínek – seznamka', text: 'Zkus Plamínek – seznamku s lidmi z okolí 💜', url: location.origin + location.pathname };
   try { if (navigator.share) await navigator.share(data); else { await navigator.clipboard.writeText(data.url); toast('Odkaz zkopírován.'); } } catch { /* zrušeno */ }
 }
 
@@ -1363,7 +1363,7 @@ function showMatch(p, matchId) {
   const theirPhoto = (p.photos && p.photos[0]) || p.photo_url;
   ov.innerHTML = `${waves('mid')}
     <div style="position:relative;display:flex;flex-direction:column;align-items:center;width:100%;max-width:360px">
-      <p class="script" style="font-size:40px;transform:rotate(-5deg)">Jiskra přeskočila!</p>
+      <p class="script" style="font-size:40px;transform:rotate(-5deg)">Plamínek vzplál!</p>
       <h1 style="font-size:50px;line-height:1">To je <span style="color:var(--accent)">shoda</span></h1>
       <p class="lead" style="margin-top:14px">Ty a ${esc(p.name)} jste se navzájem lajkli.${p.compat != null ? ` Kompatibilita ${p.compat} % 💜` : ''}</p>
       <div class="match-pics">
@@ -1486,7 +1486,7 @@ function adSlotHTML(slot, cls = '') {
   if (C.ADS.adsenseClient && C.ADS.slots && C.ADS.slots[slot]) {
     return `<div class="ad ${cls}"><span class="ad-label">Reklama</span><ins class="adsbygoogle" style="display:block" data-ad-client="${esc(C.ADS.adsenseClient)}" data-ad-slot="${esc(C.ADS.slots[slot])}" data-ad-format="auto" data-full-width-responsive="true"></ins></div>`;
   }
-  return `<a class="ad house ${cls}" href="#/premium"><span class="ad-label">Jiskra Gold</span>
+  return `<a class="ad house ${cls}" href="#/premium"><span class="ad-label">Plamínek Gold</span>
     <div class="house-ic">${I.crown({ size: 22, color: '#1a0b2e' })}</div>
     <div><b>Bez reklam a s neomezenými lajky</b><span>Uvidíš, kdo tě lajkl, Top výběr a Boost.</span></div>${I.chevron({ size: 18, color: '#A897C4' })}</a>`;
 }
@@ -1508,7 +1508,7 @@ function adCardHTML() {
       : `<div class="ad-card-in house-card">
         <span class="ad-label">Sponzorováno</span>
         <div class="boost-hero gold">${I.crown({ size: 44, color: '#1a0b2e' })}</div>
-        <h2>Jiskra Gold</h2>
+        <h2>Plamínek Gold</h2>
         <p class="lead" style="font-size:15px">Neomezené lajky, uvidíš kdo tě lajkl, Top výběr dne, Boost a žádné reklamy.</p>
         <a class="btn btn-gold" href="#/premium">Vyzkoušet Gold</a></div>`}
     <button class="btn btn-outline btn-sm ad-skip" data-skip>Pokračovat ve swipování</button>
@@ -1542,8 +1542,8 @@ async function renderChats() {
       <div class="pad" style="padding-top:0;padding-bottom:8px">
         <a class="list-item pinned" href="#/support">
           ${logo(56)}
-          <div class="body"><div class="top"><span class="title">Podpora Jiskry ${verifiedBadge(15)}</span><span class="small muted">📌</span></div>
-          <div class="top" style="align-items:center"><div class="sub ${S.supUnread ? 'new' : ''}">${S.supUnread ? 'Máš novou odpověď od týmu Jiskry' : 'Máš otázku nebo problém? Napiš nám.'}</div>
+          <div class="body"><div class="top"><span class="title">Podpora Plamínku ${verifiedBadge(15)}</span><span class="small muted">📌</span></div>
+          <div class="top" style="align-items:center"><div class="sub ${S.supUnread ? 'new' : ''}">${S.supUnread ? 'Máš novou odpověď od týmu Plamínku' : 'Máš otázku nebo problém? Napiš nám.'}</div>
           ${S.supUnread ? `<span class="count">${S.supUnread}</span>` : ''}</div></div></a>
         ${S.me.is_admin && S.adminUnread ? `<a class="list-item pinned" href="#/admin/support">${I.gear({ size: 30, color: '#FBBF24' })}<div class="body"><div class="title">Podpora – čeká ${S.adminUnread} ${S.adminUnread === 1 ? 'zpráva' : S.adminUnread < 5 ? 'zprávy' : 'zpráv'}</div><div class="sub">Odpověz uživatelům v Administraci</div></div></a>` : ''}
       </div>
@@ -1993,15 +1993,15 @@ const FAQ = [
   { k: ['boost', 'zviditel', 'víc lajk', 'vic lajk'], q: 'Jak funguje Boost?',
     a: 'Boost tě na 30 minut posune mezi první profily, které lidé v okolí uvidí – obvykle to znamená mnohem víc zobrazení a lajků. Spustíš ho bleskem ⚡ nahoře v Objevuj. Gold má 1 Boost měsíčně v ceně, Platinum 3; jinak stojí 500 coinů.' },
   { k: ['coin', 'mince', 'měna', 'mena'], q: 'Co jsou Boost Coiny?',
-    a: 'Coiny jsou měna v Jiskře. Koupíš je v Profil → ikona coinu. Utratíš je za Boost (500), Super Like navíc (100), odhalení lajku nebo zprávy (150), vrácení swipu (50) a zprávu navíc (100). Za ověření profilu dostaneš 500 coinů zdarma.' },
+    a: 'Coiny jsou měna v Plamínku. Koupíš je v Profil → ikona coinu. Utratíš je za Boost (500), Super Like navíc (100), odhalení lajku nebo zprávy (150), vrácení swipu (50) a zprávu navíc (100). Za ověření profilu dostaneš 500 coinů zdarma.' },
   { k: ['předplat', 'predplat', 'zrušit', 'zrusit', 'gold', 'platinum', 'plus', 'platb', 'peníze', 'penize', 'vrátit', 'vratit', 'refund'], q: 'Předplatné a platby',
-    a: 'Předplatné spravuje Google Play. Zrušení: aplikace Obchod Play → ikona profilu → Platby a předplatné → Předplatná → Jiskra → Zrušit. Placené funkce ti zůstanou do konce zaplaceného období. Když se ti předplatné po nákupu neukázalo, otevři Předplatné a klepni na „Obnovit nákup“.' },
+    a: 'Předplatné spravuje Google Play. Zrušení: aplikace Obchod Play → ikona profilu → Platby a předplatné → Předplatná → Plamínek → Zrušit. Placené funkce ti zůstanou do konce zaplaceného období. Když se ti předplatné po nákupu neukázalo, otevři Předplatné a klepni na „Obnovit nákup“.' },
   { k: ['ověř', 'over', 'selfie', 'fajfk', 'odznak'], q: 'Ověření profilu',
     a: 'V Profilu klepni na „Ověř se selfie“, vyfoť se se zadaným gestem a odešli. Kontrolujeme ručně, obvykle do 24 hodin. Ověřený profil dostane fialový štít a 500 coinů jako odměnu.' },
   { k: ['nikoho', 'nikdo', 'žádn', 'zadn', 'prázdn', 'prazdn', 'objevuj'], q: 'V Objevuj nikoho nevidím',
     a: 'Zkus v Objevuj → Filtry rozšířit věk a vzdálenost a zkontroluj, že máš povolenou polohu (Profil → Upravit profil → Poloha). Pokud máš profil pozastavený, zapni ho v Nastavení. Noví lidé přibývají každý den.' },
   { k: ['notifik', 'upozorn', 'oznámen', 'oznamen'], q: 'Nechodí mi upozornění',
-    a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Jiskra → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Jiskru úsporu baterie.' },
+    a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Plamínek → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Plamínek úsporu baterie.' },
   { k: ['smaz', 'smaž', 'zruš účet', 'zrus ucet', 'odstran', 'pauz', 'pozastav'], q: 'Smazání nebo pozastavení účtu',
     a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.' },
   { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
@@ -2018,7 +2018,7 @@ async function renderSupport() {
   app.innerHTML = `<div class="screen" style="height:calc(100dvh - var(--badge) - var(--safe-t))">
     <div class="chat-head">
       <a class="icon-btn ghost" href="#/chats" aria-label="Zpět na zprávy">${I.back({ size: 22, color: '#fff' })}</a>
-      <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Jiskry</b><span class="small" style="color:#6EE7B7">Asistent hned · člověk obvykle do 24 h</span></div></div>
+      <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Plamínku</b><span class="small" style="color:#6EE7B7">Asistent hned · člověk obvykle do 24 h</span></div></div>
       <a class="icon-btn ghost" href="mailto:${esc(C.SUPPORT_EMAIL)}" aria-label="Napsat e-mail podpoře">${I.mail({ size: 22, color: '#C084FC' })}</a>
     </div>
     <div class="messages" id="sMsgs"></div>
@@ -2039,14 +2039,14 @@ async function renderSupport() {
     return el;
   };
   const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: '#C084FC' })} Asistent</span>${esc(text)}`, false, 'bot');
-  const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Jiskry</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
+  const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Plamínku</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
   const chips = () => {
     $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button>';
     $$('#sTips [data-f]').forEach((b) => (b.onclick = () => { const f = FAQ[+b.dataset.f]; bubble(esc(f.q), true); setTimeout(() => { bot(f.a); bot('Pomohlo to? Když ne, napiš mi dole, co přesně se děje – předám to našemu týmu.'); }, 350); }));
     $('#sTips [data-human]').onclick = () => { bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
   };
 
-  bot(`Ahoj! 👋 Jsem asistent Jiskry. Vyber si téma dole, nebo rovnou napiš, s čím potřebuješ pomoct. Když si nebudu vědět rady, předám tě člověku z našeho týmu.`);
+  bot(`Ahoj! 👋 Jsem asistent Plamínku. Vyber si téma dole, nebo rovnou napiš, s čím potřebuješ pomoct. Když si nebudu vědět rady, předám tě člověku z našeho týmu.`);
   const { data: hist } = await sb.from('support_messages').select('*').eq('user_id', me).order('created_at', { ascending: true }).limit(200);
   (hist || []).forEach(human);
   chips();
@@ -2071,7 +2071,7 @@ async function renderSupport() {
     const f = faqFind(text);
     setTimeout(() => {
       if (f) bot(`Možná pomůže tohle: ${f.a}`);
-      if (!acked) { bot('Tvoji zprávu jsem předal(a) týmu Jiskry. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜'); acked = true; }
+      if (!acked) { bot('Tvoji zprávu jsem předal(a) týmu Plamínku. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜'); acked = true; }
     }, 400);
   };
 }
@@ -2112,8 +2112,8 @@ async function renderProfile() {
         <a class="promo" href="#/premium">
           <div class="logo-mark" style="width:48px;height:48px;border-radius:16px;background:#2A1650">${I.crown({ size: 26, color: '#FBBF24' })}</div>
           <div style="flex:1">${S.plan
-            ? `<b style="font-size:16px">Jiskra <span style="color:var(--gold)">${planName[S.plan]}</span></b><div class="small" style="color:#C9BCE0">Aktivní do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}</div>`
-            : `<b style="font-size:16px">Jiskra <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: '#C084FC' })}</a>
+            ? `<b style="font-size:16px">Plamínek <span style="color:var(--gold)">${planName[S.plan]}</span></b><div class="small" style="color:#C9BCE0">Aktivní do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}</div>`
+            : `<b style="font-size:16px">Plamínek <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: '#C084FC' })}</a>
         <div class="quick-grid">
           <a href="#/filters">${I.sliders({ size: 22, color: '#C084FC' })}<span>Filtry</span></a>
           <a href="#/coins">${I.coin({ size: 22 })}<span data-coins>${fmtCoins(S.coins)}</span></a>
@@ -2150,7 +2150,7 @@ async function renderCoins() {
           <span class="pack-ic">${I.coin({ size: 30 })}</span>
           <b>${fmtCoins(k.coins)}</b>${k.bonus ? `<span class="pack-bonus">+${fmtCoins(k.bonus)} bonus</span>` : '<span class="pack-bonus" style="visibility:hidden">.</span>'}
           <span class="pack-price" data-price="${k.sku}">${fmtCoins(k.price)} Kč</span></button>`).join('')}</div>
-      ${inPlay ? '' : '<p class="small muted" style="margin-top:8px">Coiny se kupují v aplikaci Jiskra z Google Play.</p>'}
+      ${inPlay ? '' : '<p class="small muted" style="margin-top:8px">Coiny se kupují v aplikaci Plamínek z Google Play.</p>'}
       <p class="label-caps" style="margin-top:22px">Za co je utratíš</p>
       <div class="group">
         <div class="settings-row"><span>${I.bolt({ size: 18, fill: '#C084FC' })} Boost na 30 minut</span><b class="cost">${fmtCoins(C.COIN_COSTS.boost)}</b></div>
@@ -2166,7 +2166,7 @@ async function renderCoins() {
       <p class="label-caps" style="margin-top:22px">Historie</p>
       <div class="group" id="hist"><div class="settings-row"><span class="muted">Načítám…</span></div></div>
       ${inPlay ? '<button class="link-btn" data-restore style="display:block;margin:14px auto 0">Nepřipsaly se coiny? Obnovit nákupy</button>' : ''}
-      <p class="small muted" style="margin:16px 0 calc(24px + var(--safe-b))">Coiny jsou virtuální měna jen pro použití v Jiskře. Nedají se vyměnit za peníze ani převést jinému uživateli. Nevyužité coiny propadají při smazání účtu.</p>
+      <p class="small muted" style="margin:16px 0 calc(24px + var(--safe-b))">Coiny jsou virtuální měna jen pro použití v Plamínku. Nedají se vyměnit za peníze ani převést jinému uživateli. Nevyužité coiny propadají při smazání účtu.</p>
     </div></div>`;
   $('[data-back]').onclick = () => (history.length > 1 ? history.back() : go('#/profile'));
   $$('[data-pack]').forEach((b) => (b.onclick = () => buyCoins(C.COIN_PACKS[+b.dataset.pack])));
@@ -2187,7 +2187,7 @@ async function renderCoins() {
 }
 
 async function buyCoins(pack) {
-  if (!inPlayApp()) return toast('Coiny koupíš v aplikaci Jiskra z Google Play.', 4000);
+  if (!inPlayApp()) return toast('Coiny koupíš v aplikaci Plamínek z Google Play.', 4000);
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
     const [details] = await service.getDetails([pack.sku]);
@@ -2324,7 +2324,7 @@ async function renderSettings() {
         ${row(I.logout({ size: 18, color: '#C084FC' }), 'Odhlásit se', ' ', 'data-k="logout"')}
         ${row(I.trash({ size: 18, color: '#FCA5A5' }), '<span style="color:#FCA5A5">Smazat účet</span>', ' ', 'data-k="delete"')}
       </div>
-      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Jiskra · MS Studio · verze 1.0</p>
+      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Plamínek · MS Studio · verze 1.0</p>
     </div></div>`;
 
   $('#s-pause').onchange = async (e) => {
@@ -2574,7 +2574,7 @@ function renderPremium() {
         ${Object.keys(TIERS).map((t) => `<button type="button" data-v="${t}" aria-pressed="${t === tier}">${planName[t]}</button>`).join('')}
       </div>
       <div class="panel" style="margin-top:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${I.crown({ size: 24, color: tier === 'gold' ? '#FBBF24' : tier === 'plus' ? '#C084FC' : '#E9D5FF' })}<b style="font-size:18px">Jiskra ${planName[tier]}</b></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${I.crown({ size: 24, color: tier === 'gold' ? '#FBBF24' : tier === 'plus' ? '#C084FC' : '#E9D5FF' })}<b style="font-size:18px">Plamínek ${planName[tier]}</b></div>
         ${TIERS[tier].map((f) => `<div class="feature"><span class="tick">${I.check({ size: 13, color: '#fff', sw: 3.2 })}</span>${esc(f)}</div>`).join('')}
       </div>
       <div class="periods" role="group" aria-label="Délka předplatného" style="margin-top:20px" id="periods">
@@ -2625,7 +2625,7 @@ async function buyWithPlay(tier, period) {
     if (error) { await response.complete('fail'); return toast('Platbu se nepodařilo ověřit. Zkus „Obnovit nákup“.'); }
     await response.complete('success');
     await loadMe();
-    toast(`Máš Jiskru ${planName[tier]}! 💜`);
+    toast(`Máš Plamínek ${planName[tier]}! 💜`);
     go('#/discover');
   } catch (err) {
     if (err && err.name === 'AbortError') return;
@@ -2640,7 +2640,7 @@ async function restorePlay() {
     if (!purchases.length) return toast('Nenašli jsme žádné nevyřízené nákupy.');
     for (const p of purchases) await sb.functions.invoke('play-verify', { body: { sku: p.itemId, purchaseToken: p.purchaseToken } });
     await loadMe();
-    toast(S.plan ? `Obnoveno: Jiskra ${planName[S.plan]}` : 'Nákupy zkontrolovány.');
+    toast(S.plan ? `Obnoveno: Plamínek ${planName[S.plan]}` : 'Nákupy zkontrolovány.');
     if (currentView() === 'coins') renderCoins(); else renderPremium();
   } catch (err) { toast(errText(err)); }
 }

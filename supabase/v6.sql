@@ -100,7 +100,7 @@ begin
   if new.from_admin then
     if url is not null and secret is not null then
       perform net.http_post(url := url, headers := hdr, body := jsonb_build_object('to', new.user_id,
-        'title', 'Podpora Jiskry odpověděla 💜', 'body', left(new.body, 120), 'url', './#/support', 'tag', 'support'));
+        'title', 'Podpora Plamínku odpověděla 💜', 'body', left(new.body, 120), 'url', './#/support', 'tag', 'support'));
     end if;
     return new;
   end if;
@@ -116,9 +116,9 @@ begin
   if rkey is not null then
     perform net.http_post(url := 'https://api.resend.com/emails',
       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || rkey),
-      body := jsonb_build_object('from', 'Jiskra <onboarding@resend.dev>', 'to', jsonb_build_array(remail),
-        'subject', 'Jiskra – nová zpráva podpoře',
-        'text', 'V aplikaci Jiskra čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
+      body := jsonb_build_object('from', 'Plamínek <onboarding@resend.dev>', 'to', jsonb_build_array(remail),
+        'subject', 'Plamínek – nová zpráva podpoře',
+        'text', 'V aplikaci Plamínek čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
                 'Přečteš si ji a odpovíš v aplikaci: Profil → Administrace → Podpora.'));
   end if;
   return new;

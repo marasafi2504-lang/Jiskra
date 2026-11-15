@@ -34,7 +34,7 @@ export const PRICES = {
 
 // Reklamy (Google AdSense) – zobrazují se jen uživatelům bez předplatného.
 // Po schválení AdSense sem vlož ID vydavatele (ca-pub-…) a ID reklamních jednotek.
-// Dokud jsou prázdné, místo reklamy se ukazuje nabídka Jiskra Gold.
+// Dokud jsou prázdné, místo reklamy se ukazuje nabídka Plamínek Gold.
 export const ICE_SERVERS = []; // volitelně TURN server pro videohovory přes mobilní data
 export const ADS = {
   adsenseClient: '',            // např. 'ca-pub-1234567890123456'

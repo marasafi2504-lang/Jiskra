@@ -1,6 +1,6 @@
 // Service worker – aplikace se rychle načte a funguje i při slabém signálu.
 // Při každé nové verzi aplikace zvyš číslo VERZE.
-const VERZE = 'jiskra-v8';
+const VERZE = 'jiskra-v9';
 const SOUBORY = ['./', 'index.html', 'styles.css', 'app.js', 'config.js', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png'];
 
@@ -37,8 +37,8 @@ self.addEventListener('fetch', (e) => {
 // Push notifikace (nová zpráva, nová shoda)
 self.addEventListener('push', (e) => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'Jiskra', body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Jiskra', {
+  try { d = e.data ? e.data.json() : {}; } catch { d = { title: 'Plamínek', body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Plamínek', {
     body: d.body || '',
     icon: 'icon-192.png',
     badge: 'icon-192.png',
