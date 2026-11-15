@@ -2345,15 +2345,26 @@ async function renderSettings() {
     S.me.notify = { ...notify };
   }));
   $('[data-k=email]').onclick = async () => {
-    const email = await dialog({ title: 'Nový e-mail', text: 'Pošleme ti potvrzovací odkaz na novou adresu.', input: true, placeholder: 'novy@email.cz', ok: 'Změnit' });
+    const email = await dialog({ title: 'Nový e-mail', text: 'Kvůli bezpečnosti pošleme potvrzovací odkaz na starou i novou adresu. Změna platí až po potvrzení v obou.', input: true, placeholder: 'novy@email.cz', ok: 'Změnit' });
     if (!email) return;
+    if (!EMAIL_RE.test(email.trim())) return toast('Zkontroluj e-mail, vypadá neplatně.');
     const { error } = await sb.auth.updateUser({ email: email.trim() }, { emailRedirectTo: location.origin + location.pathname });
-    toast(error ? errText(error) : 'Zkontroluj e-mail a potvrď změnu.', 4000);
+    toast(error ? errText(error) : 'Hotovo. Potvrď změnu odkazem ve STARÉM i NOVÉM e-mailu.', 6000);
   };
   $('[data-k=pass]').onclick = async () => {
+    const em = S.session && S.session.user.email;
+    if (hasEmail && em) {
+      const old = await dialog({ title: 'Současné heslo', text: 'Pro jistotu nejdřív zadej své současné heslo.', input: true, password: true, placeholder: 'současné heslo', ok: 'Pokračovat' });
+      if (!old) return;
+      const { error: e1 } = await sb.auth.signInWithPassword({ email: em, password: old });
+      if (e1) return toast(/Invalid login/i.test(e1.message) ? 'Současné heslo nesedí.' : errText(e1));
+    }
     const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, password: true, placeholder: 'nové heslo', ok: 'Uložit' });
     if (!pw) return;
     if (pw.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
+    const pw2 = await dialog({ title: 'Zopakuj heslo', text: 'Pro kontrolu ho napiš ještě jednou.', input: true, password: true, placeholder: 'nové heslo znovu', ok: 'Uložit' });
+    if (!pw2) return;
+    if (pw2 !== pw) return toast('Hesla se neshodují.');
     const { error } = await sb.auth.updateUser({ password: pw });
     toast(error ? errText(error) : 'Heslo změněno ✓');
   };
