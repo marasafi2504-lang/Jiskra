@@ -632,7 +632,7 @@ function renderCheckMail(email) {
     <div style="margin:80px 0 20px">${I.mail({ size: 56, color: '#C084FC' })}</div>
     <h1 style="font-size:30px">Zkontroluj <span style="color:var(--accent)">e-mail</span></h1>
     <p class="lead">Poslali jsme potvrzovací odkaz na<br><b>${esc(email)}</b>.<br>Klepni na něj a pak se vrať a přihlas se.</p>
-    <p class="lead" style="font-size:14px">Nic nepřišlo? Mrkni do spamu nebo hromadné pošty.</p>
+    <p class="lead" style="font-size:14px">E-mail má zatím anglický předmět <b>„Confirm your email address“</b>. Stačí v něm klepnout na <b>Confirm your mail</b>.<br>Nic nepřišlo? Mrkni do spamu nebo hromadné pošty.</p>
     <button class="btn btn-primary" data-act="signin" style="margin-top:18px">Přejít na přihlášení</button>
     <button class="link-btn" data-act="back" style="margin-top:12px">Zpět</button>
   </div>`;
