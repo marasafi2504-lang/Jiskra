@@ -2378,7 +2378,7 @@ async function renderSupport() {
   app.innerHTML = `<div class="screen" style="height:calc(100dvh - var(--badge) - var(--safe-t))">
     <div class="chat-head">
       <a class="icon-btn ghost" href="#/chats" aria-label="Zpět na zprávy">${I.back({ size: 22, color: '#fff' })}</a>
-      <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Plamínku</b><span class="small" style="color:#6EE7B7">Asistent hned · člověk obvykle do 24 h</span></div></div>
+      <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Plamínku</b><span class="small" style="color:#6EE7B7">Žárka hned · člověk obvykle do 24 h</span></div></div>
       <a class="icon-btn ghost" href="mailto:${esc(C.SUPPORT_EMAIL)}" aria-label="Napsat e-mail podpoře">${I.mail({ size: 22, color: 'var(--accent)' })}</a>
     </div>
     <div class="messages" id="sMsgs"></div>
@@ -2398,10 +2398,10 @@ async function renderSupport() {
     box.scrollTop = box.scrollHeight;
     return el;
   };
-  const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(text)}`, false, 'bot');
+  const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Žárka</span>${esc(text)}`, false, 'bot');
   const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Plamínku</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
   const botActions = (acts, ask) => {
-    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(ask || 'Chceš to udělat rovnou?')}<div class="bot-acts">${acts.map(([k, l]) => `<button type="button" data-a="${k}">${l}</button>`).join('')}</div>`, false, 'bot');
+    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Žárka</span>${esc(ask || 'Chceš to udělat rovnou?')}<div class="bot-acts">${acts.map(([k, l]) => `<button type="button" data-a="${k}">${l}</button>`).join('')}</div>`, false, 'bot');
     $$('[data-a]', el).forEach((b) => (b.onclick = async () => {
       if (b.dataset.a === 'delete') return deleteAccountFlow();
       if (b.dataset.a === 'password') return changePasswordFlow();
@@ -2433,7 +2433,7 @@ async function renderSupport() {
     $('#sTips [data-human]').onclick = () => { S.supHuman = true; bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
   };
 
-  bot(`Ahoj! 👋 Jsem asistent Plamínku. Vyber si téma dole, nebo rovnou napiš, s čím potřebuješ pomoct. Když si nebudu vědět rady, předám tě člověku z našeho týmu.`);
+  bot('Ahoj! 👋 Já jsem Žárka, asistentka Plamínku. Zeptej se mě na cokoli k aplikaci, nebo si vyber téma dole. Když si nebudu vědět rady, předám tě člověku z týmu.');
   const { data: hist } = await sb.from('support_messages').select('*').eq('user_id', me).order('created_at', { ascending: true }).limit(200);
   (hist || []).forEach(human);
   chips();
@@ -2462,7 +2462,25 @@ async function renderSupport() {
     if (S.supHuman) { S.supHuman = false; return escalate(text); }
     const typing = bubble('<span class="dots"><i></i><i></i><i></i></span>', false, 'bot');
     let r = null;
-    try { const { data, error } = await sb.functions.invoke('support-ai', { body: { text } }); if (!error) r = data; } catch { r = null; }
+    try { const { data, error } = await sb.functions.invoke('support-ai', { body: { text, triage: true } }); if (!error) r = data; } catch { r = null; }
+    if (r && r.kind === 'unsure') {
+      // Hotová odpověď není → zeptáme se chytré Žárky (Cloudflare Workers AI, bezplatný denní limit)
+      let z = null;
+      try {
+        const tok = (await sb.auth.getSession()).data.session?.access_token;
+        const res = await fetch('/api/zarka', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify({ text, ctx: r.ctx, history: S.zHist || [] }) });
+        if (res.ok) z = await res.json();
+      } catch { z = null; }
+      typing.remove();
+      if (!z || !z.answer) return escalate(text);
+      S.zHist = [...(S.zHist || []), { role: 'user', content: text }, { role: 'assistant', content: z.answer }].slice(-6);
+      bot(z.answer);
+      if (z.handoff) return escalate(text);
+      const el2 = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Žárka</span>Pomohlo to?<div class="bot-acts"><button type="button" data-y>👍 Ano</button><button type="button" data-n>Ne, předat člověku</button></div>`, false, 'bot');
+      $('[data-y]', el2).onclick = () => { el2.remove(); bot('To mám radost! 🔥'); };
+      $('[data-n]', el2).onclick = () => { el2.remove(); escalate(text); };
+      return;
+    }
     typing.remove();
     if (!r || r.kind === 'error' || r.kind === 'needs_login') {
       const f = faqFind(text);
@@ -2474,7 +2492,7 @@ async function renderSupport() {
     bot(r.answer);
     const f = FAQ.find((x) => x.q === r.q) || faqFind(text);
     if (f && f.actions) botActions(f.actions, f.ask);
-    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>Pomohlo to?<div class="bot-acts"><button type="button" data-y>👍 Ano</button><button type="button" data-n>Ne, předat člověku</button></div>`, false, 'bot');
+    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Žárka</span>Pomohlo to?<div class="bot-acts"><button type="button" data-y>👍 Ano</button><button type="button" data-n>Ne, předat člověku</button></div>`, false, 'bot');
     $('[data-y]', el).onclick = () => { el.remove(); bot('Super, rád(a) jsem pomohl(a)! 🙂'); };
     $('[data-n]', el).onclick = () => { el.remove(); escalate(text); };
   };
@@ -2717,7 +2735,7 @@ function renderAbout() {
       <p class="label-caps">Bezpečí a pomoc</p>
       <div class="group">
         ${row('bezpecnost.html', '🛡️', 'Bezpečné seznamování', 'Tipy na první rande')}
-        ${row('#/support', '💬', 'Podpora Plamínku', 'Asistent hned, člověk do 24 h', false)}
+        ${row('#/support', '💬', 'Podpora Plamínku', 'Žárka hned, člověk do 24 h', false)}
         ${row(`mailto:${esc(C.SUPPORT_EMAIL)}`, '✉️', 'Napsat e-mail', esc(C.SUPPORT_EMAIL), false)}
       </div>
       <p class="label-caps">Provozovatel</p>

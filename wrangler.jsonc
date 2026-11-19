@@ -1,9 +1,13 @@
-// Cloudflare: zveřejní složku "web" jako statický web (bez vodoznaku)
+// Cloudflare: web ze složky "web" + malý worker pro asistentku Žárku (Workers AI, bezplatný denní limit)
 {
   "name": "plaminek",
   "compatibility_date": "2026-11-01",
+  "main": "worker.js",
   "assets": {
     "directory": "./web",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": { "binding": "AI" }
 }
