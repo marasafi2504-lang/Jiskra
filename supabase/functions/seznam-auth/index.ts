@@ -6,7 +6,7 @@
 //   SEZNAM_CLIENT_ID, SEZNAM_CLIENT_SECRET
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const CLIENT_ID = Deno.env.get("SEZNAM_CLIENT_ID") ?? "";
+const CLIENT_ID = Deno.env.get("SEZNAM_CLIENT_ID") || "4c861b343f8c79f3bdb571798dce078e8ac7dc11e349a308";
 const CLIENT_SECRET = Deno.env.get("SEZNAM_CLIENT_SECRET") ?? "";
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -26,7 +26,7 @@ const back = (app: string, err: string) => Response.redirect(`${app}#/?login_err
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  if (!CLIENT_ID || !CLIENT_SECRET) return new Response("Přihlášení přes Seznam není nastavené.", { status: 503 });
+  if (!CLIENT_ID || !CLIENT_SECRET) return new Response("Přihlášení přes Seznam není nastavené (chybí SEZNAM_CLIENT_SECRET).", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 
   // 1) start
   if (!url.pathname.endsWith("/callback")) {
