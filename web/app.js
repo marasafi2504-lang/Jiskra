@@ -494,6 +494,10 @@ function subscribeGlobal() {
 // Router
 // ---------------------------------------------------------------------
 async function route() {
+  if (location.search.includes('vitej=1') && S.session) {
+    history.replaceState(null, '', location.pathname + location.hash);
+    setTimeout(() => toast(S.me && S.me.name ? `Vítej zpátky, ${S.me.name} 💜` : 'Vítej v Plamínku! 💜 Teď si vyplň profil.', 5000), 600);
+  }
   if (/[#&]error(_code)?=/.test(location.hash) && !location.hash.includes('login_error=')) {
     const h = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
     history.replaceState(null, '', location.pathname + '#/');
