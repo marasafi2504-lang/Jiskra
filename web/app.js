@@ -154,14 +154,16 @@ async function uploadPhoto(file, folder = '') {
 }
 
 // Vlastní dialogy (místo prompt/confirm)
-function dialog({ title, text = '', input = false, password = false, placeholder = '', ok = 'OK', cancel = 'Zrušit', danger = false }) {
+function dialog({ title, text = '', input = false, password = false, email = false, placeholder = '', ok = 'OK', cancel = 'Zrušit', danger = false }) {
   return new Promise((resolve) => {
     const w = document.createElement('div');
     w.className = 'sheet-wrap';
     w.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dlgT">
       <h2 id="dlgT" style="margin:0;font-size:20px">${esc(title)}</h2>
       ${text ? `<p class="lead" style="font-size:15px">${esc(text)}</p>` : ''}
-      ${input ? `<label class="sr-only" for="dlgIn">${esc(title)}</label>${password
+      ${input ? `<label class="sr-only" for="dlgIn">${esc(title)}</label>${email
+        ? `<input class="input" id="dlgIn" type="email" inputmode="email" autocomplete="email" autocapitalize="off" maxlength="120" placeholder="${esc(placeholder)}">`
+        : password
         ? `<input class="input" id="dlgIn" type="password" autocomplete="new-password" maxlength="72" placeholder="${esc(placeholder)}">`
         : `<textarea class="input" id="dlgIn" maxlength="500" placeholder="${esc(placeholder)}" style="height:100px"></textarea>`}` : ''}
       <div class="row" style="margin-top:6px">
@@ -174,7 +176,7 @@ function dialog({ title, text = '', input = false, password = false, placeholder
     const no = $('[data-k=no]', w); if (no) no.onclick = () => done(input ? null : false);
     $('[data-k=yes]', w).onclick = () => done(input ? ((password ? $('#dlgIn', w).value : $('#dlgIn', w).value.trim()) || null) : true);
     if (input) setTimeout(() => $('#dlgIn', w).focus(), 50);
-    if (password) $('#dlgIn', w).addEventListener('keydown', (ev) => { if (ev.key === 'Enter') $('[data-k=yes]', w).click(); });
+    if (password || email) $('#dlgIn', w).addEventListener('keydown', (ev) => { if (ev.key === 'Enter') $('[data-k=yes]', w).click(); });
   });
 }
 
@@ -561,15 +563,24 @@ function renderAuth(mode = 'welcome') {
       <div style="flex:1;min-height:28px"></div>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div id="socials" style="display:flex;flex-direction:column;gap:12px"></div>
-        <button class="btn btn-primary" data-act="signup">Pokračovat e-mailem ${I.arrow({ size: 18, color: '#fff' })}</button>
-        <button class="btn btn-outline" data-act="magic">${I.mail({ size: 18, color: 'var(--accent)' })} Přihlásit odkazem z e-mailu</button>
-        <button class="link-btn" data-act="signin" style="align-self:center">Už mám účet s heslem – přihlásit se</button>
+        <button class="btn btn-primary" data-act="magic">${I.mail({ size: 18, color: '#fff' })} Pokračovat e-mailem ${I.arrow({ size: 18, color: '#fff' })}</button>
+        <p class="small muted" style="text-align:center;margin:-4px 0 0">Bez hesla – pošleme ti odkaz, klepneš a jsi tam.</p>
+        <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap">
+          <button class="link-btn" data-act="signin">Přihlásit se heslem</button>
+          <button class="link-btn" data-act="signup">Registrace s heslem</button></div>
         <p class="small muted" style="text-align:center;margin:6px 0 0">Pokračováním souhlasíš s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a> a <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">zásadami ochrany soukromí</a>. Jen pro 18+.</p>
       </div>
     </div>`;
     $('[data-act=signup]').onclick = () => renderAuth('signup');
     $('[data-act=signin]').onclick = () => renderAuth('signin');
-    $('[data-act=magic]').onclick = magicLogin;
+    $('[data-act=magic]').onclick = () => magicLogin();
+    // Odkaz typu …/?email=jmeno@seznam.cz – stačí potvrdit a přijde přihlašovací odkaz
+    const pre = new URLSearchParams(location.search).get('email');
+    if (pre && EMAIL_RE.test(pre)) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      dialog({ title: 'Přihlásit se do Plamínku', text: `Pošleme přihlašovací odkaz na ${pre}. Klepneš na něj v e-mailu a jsi v aplikaci – bez hesla.`, ok: 'Poslat odkaz' })
+        .then((ok) => { if (ok) magicLogin(pre); });
+    }
     loadProviders().then((list) => {
       const box = $('#socials'); if (!box) return;
       box.innerHTML = list.map((k) => `<button class="btn btn-social ${PROVIDERS[k].cls}" data-oauth="${k}">${PROVIDERS[k].icon}<span>Pokračovat přes ${PROVIDERS[k].name}</span></button>`).join('');
@@ -639,8 +650,8 @@ function renderAuth(mode = 'welcome') {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 // Přihlášení bez hesla: na e-mail (Seznam, Gmail…) přijde odkaz, klepnutím se rovnou přihlásí
-async function magicLogin() {
-  const email = await dialog({ title: 'Přihlásit odkazem', text: 'Zadej svůj e-mail (třeba @seznam.cz nebo @gmail.com). Pošleme ti odkaz – stačí na něj klepnout a jsi přihlášený/á. Bez hesla.', input: true, placeholder: 'tvuj@seznam.cz', ok: 'Poslat odkaz' });
+async function magicLogin(prefill = '') {
+  const email = prefill || await dialog({ title: 'Tvůj e-mail', text: 'Napiš svůj e-mail. Pošleme ti odkaz – klepneš na něj a jsi v Plamínku. Žádné heslo.', input: true, email: true, placeholder: 'tvuj@seznam.cz', ok: 'Poslat odkaz' });
   if (!email) return;
   const e = email.trim().toLowerCase();
   if (!EMAIL_RE.test(e)) return toast('Zkontroluj e-mail, vypadá neplatně.');
