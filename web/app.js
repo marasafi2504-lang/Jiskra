@@ -562,12 +562,14 @@ function renderAuth(mode = 'welcome') {
       <div style="display:flex;flex-direction:column;gap:12px">
         <div id="socials" style="display:flex;flex-direction:column;gap:12px"></div>
         <button class="btn btn-primary" data-act="signup">Pokračovat e-mailem ${I.arrow({ size: 18, color: '#fff' })}</button>
-        <button class="link-btn" data-act="signin" style="align-self:center">Už mám účet s e-mailem – přihlásit se</button>
+        <button class="btn btn-outline" data-act="magic">${I.mail({ size: 18, color: 'var(--accent)' })} Přihlásit odkazem z e-mailu</button>
+        <button class="link-btn" data-act="signin" style="align-self:center">Už mám účet s heslem – přihlásit se</button>
         <p class="small muted" style="text-align:center;margin:6px 0 0">Pokračováním souhlasíš s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a> a <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">zásadami ochrany soukromí</a>. Jen pro 18+.</p>
       </div>
     </div>`;
     $('[data-act=signup]').onclick = () => renderAuth('signup');
     $('[data-act=signin]').onclick = () => renderAuth('signin');
+    $('[data-act=magic]').onclick = magicLogin;
     loadProviders().then((list) => {
       const box = $('#socials'); if (!box) return;
       box.innerHTML = list.map((k) => `<button class="btn btn-social ${PROVIDERS[k].cls}" data-oauth="${k}">${PROVIDERS[k].icon}<span>Pokračovat přes ${PROVIDERS[k].name}</span></button>`).join('');
@@ -636,13 +638,24 @@ function renderAuth(mode = 'welcome') {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function renderCheckMail(email) {
+// Přihlášení bez hesla: na e-mail (Seznam, Gmail…) přijde odkaz, klepnutím se rovnou přihlásí
+async function magicLogin() {
+  const email = await dialog({ title: 'Přihlásit odkazem', text: 'Zadej svůj e-mail (třeba @seznam.cz nebo @gmail.com). Pošleme ti odkaz – stačí na něj klepnout a jsi přihlášený/á. Bez hesla.', input: true, placeholder: 'tvuj@seznam.cz', ok: 'Poslat odkaz' });
+  if (!email) return;
+  const e = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(e)) return toast('Zkontroluj e-mail, vypadá neplatně.');
+  const { error } = await sb.auth.signInWithOtp({ email: e, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
+  if (error) return toast(errText(error), 4500);
+  renderCheckMail(e, true);
+}
+
+function renderCheckMail(email, magic = false) {
   $('#app').innerHTML = `
   <div class="screen pad" style="padding-top:24px;text-align:center">
     <div style="margin:80px 0 20px">${I.mail({ size: 56, color: 'var(--accent)' })}</div>
     <h1 style="font-size:30px">Zkontroluj <span style="color:var(--accent)">e-mail</span></h1>
-    <p class="lead">Poslali jsme potvrzovací odkaz na<br><b>${esc(email)}</b>.<br>Klepni na něj a pak se vrať a přihlas se.</p>
-    <p class="lead" style="font-size:14px">E-mail má zatím anglický předmět <b>„Confirm your email address“</b>. Stačí v něm klepnout na <b>Confirm your mail</b>.<br>Nic nepřišlo? Mrkni do spamu nebo hromadné pošty.</p>
+    <p class="lead">${magic ? 'Poslali jsme přihlašovací odkaz na' : 'Poslali jsme potvrzovací odkaz na'}<br><b>${esc(email)}</b>.<br>${magic ? 'Klepni na něj a <b>rovnou tě přihlásí</b> do Plamínku.' : 'Klepni na něj a pak se vrať a přihlas se.'}</p>
+    <p class="lead" style="font-size:14px">${magic ? 'E-mail má zatím anglický předmět <b>„Your Magic Link“</b> nebo <b>„Confirm Your Signup“</b>. Klepni v něm na odkaz.' : 'E-mail má zatím anglický předmět <b>„Confirm your email address“</b>. Stačí v něm klepnout na <b>Confirm your mail</b>.'}<br>Nic nepřišlo? Mrkni do spamu nebo hromadné pošty. Odkaz platí 1 hodinu.</p>
     <button class="btn btn-primary" data-act="signin" style="margin-top:18px">Přejít na přihlášení</button>
     <button class="link-btn" data-act="back" style="margin-top:12px">Zpět</button>
   </div>`;
