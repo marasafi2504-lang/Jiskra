@@ -517,7 +517,7 @@ async function route() {
   if (!S.session) return renderAuth();
   if (!S.me) return renderWizard();
   if (S.me.banned) return renderBanned();
-  const [view, arg] = location.hash.replace('#/', '').split('/');
+  const [view, arg, arg2] = location.hash.replace('#/', '').split('/');
   switch (view) {
     case 'likes': return renderLikes();
     case 'chats': return renderChats();
@@ -531,7 +531,7 @@ async function route() {
     case 'settings': return renderSettings();
     case 'about': return renderAbout();
     case 'coins': return renderCoins();
-    case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats') : go('#/profile');
+    case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats', arg2) : go('#/profile');
     default: return renderDiscover();
   }
 }
@@ -2691,7 +2691,7 @@ function renderVerify() {
 // ---------------------------------------------------------------------
 // Administrace
 // ---------------------------------------------------------------------
-async function renderAdmin(tab) {
+async function renderAdmin(tab, openId) {
   const tabs = { stats: 'Přehled', support: 'Podpora', verify: 'Ověření', reports: 'Nahlášení', users: 'Uživatelé' };
   app.innerHTML = `<div class="screen">
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Administrace</h1><span style="width:44px"></span></div>
@@ -2753,7 +2753,7 @@ async function renderAdmin(tab) {
       if (error) return fail(error);
       box.innerHTML = `<button class="link-btn" data-backlist>${I.back({ size: 16 })} Všechny konverzace</button>
         <div class="adm-card" style="margin-top:10px"><div class="adm-top"><div style="display:flex;gap:10px;align-items:center"><div class="avatar sm" style="${bgImg(u.photo_url)}">${u.photo_url ? '' : initial(u.name)}</div>
-          <div><b>${esc(u.name)}</b><div class="small muted">${esc(u.email || '')}</div></div></div></div>
+          <div><b>${esc(u.name)}</b> <span class="tag">#${esc(u.user_id.slice(0, 8).toUpperCase())}</span><div class="small muted">${esc(u.email || '')}</div></div></div></div>
           <div class="messages" style="padding:8px 0;max-height:none">${data.map((m) => `<div class="msg ${m.from_admin ? 'me' : ''}">${esc(m.body)}<time>${timeLabel(m.created_at)}</time></div>`).join('')}</div>
           <div class="field"><label class="sr-only" for="aRep">Odpověď</label><textarea class="input" id="aRep" maxlength="2000" placeholder="Napiš odpověď…" style="height:100px"></textarea></div>
           <div class="row">${u.email ? `<a class="btn btn-outline btn-sm" href="mailto:${esc(u.email)}">${I.mail({ size: 16 })} E-mailem</a>` : ''}<button class="btn btn-primary btn-sm" data-send>Odeslat odpověď</button></div></div>`;
@@ -2773,6 +2773,11 @@ async function renderAdmin(tab) {
       <div class="body"><div class="top"><span class="title">${esc(u.name)}</span><span class="small muted">${timeLabel(u.last_at)}</span></div>
       <div class="top" style="align-items:center"><div class="sub ${u.unread ? 'new' : ''}">${u.last_from_admin ? 'Ty: ' : ''}${esc(u.last_body)}</div>${u.unread ? `<span class="count">${u.unread}</span>` : ''}</div></div></button>`).join('');
     $$('[data-th]', box).forEach((b) => (b.onclick = () => openThread(data[+b.dataset.th])));
+    // Přímý odkaz z e-mailu: #/admin/support/<id uživatele> nebo krátký kód (prvních 8 znaků)
+    if (openId) {
+      const t = data.find((u) => u.user_id === openId || u.user_id.startsWith(openId.toLowerCase()));
+      if (t) openThread(t); else toast('Konverzace nenalezena.');
+    }
   }
 
   if (tab === 'users') {
