@@ -1,13 +1,13 @@
-// Plamínek – worker: statický web + asistentka Žárka
-// Šetrně: Žárka se volá jen tehdy, když hotové odpovědi (zdarma) nestačí.
+// Plamínek – worker: statický web + asistent AmorAI
+// Šetrně: AmorAI se volá jen tehdy, když hotové odpovědi (zdarma) nestačí.
 // Běží na Cloudflare Workers AI v rámci bezplatného denního limitu; po vyčerpání aplikace přepne zpět na hotové odpovědi.
 const SB = 'https://itfcekypwboljvwyzfkg.supabase.co';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0ZmNla3lwd2JvbGp2d3l6ZmtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzMzk0MjUsImV4cCI6MjEwOTkxNTQyNX0.5xhst48-6yek7JliVjQ89qi3iQ1KY8AKZ9YrieTmhnc';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8-fast';
 
-const SYSTEM = `Jsi Žárka, přátelská asistentka české seznamovací aplikace Plamínek.
+const SYSTEM = `Jsi AmorAI, přátelský asistent české seznamovací aplikace Plamínek.
 Pravidla:
-- Odpovídej vždy česky, tykej, buď vřelá a stručná (nejvýš 4 krátké věty).
+- Odpovídej vždy česky, tykej, buď vřelý a stručný (nejvýš 4 krátké věty).
 - Pomáháš jen s aplikací Plamínek (profil, fotky, zprávy, shody, Souznění, předplatné, coiny, ověření, bezpečnost, přihlášení, nastavení). Na nic jiného neodpovídej – slušně řekni, že pomáháš jen s Plamínkem.
 - Vycházej POUZE z podkladů níže. Nevymýšlej funkce, ceny ani postupy, které v podkladech nejsou.
 - Nikdy nechtěj heslo, kód z SMS ani platební údaje.
@@ -16,7 +16,7 @@ Pravidla:
 
 const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
-async function zarka(req, env) {
+async function amor(req, env) {
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
   const auth = req.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'auth' }, 401);
@@ -46,7 +46,7 @@ async function zarka(req, env) {
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === '/api/zarka') return zarka(req, env);
+    if (url.pathname === '/api/amor') return amor(req, env);
     return env.ASSETS.fetch(req);
   },
 };

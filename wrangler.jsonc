@@ -1,4 +1,4 @@
-// Cloudflare: web ze složky "web" + malý worker pro asistentku Žárku (Workers AI, bezplatný denní limit)
+// Cloudflare: web ze složky "web" + malý worker pro asistenta AmorAI (Workers AI, bezplatný denní limit)
 {
   "name": "plaminek",
   "compatibility_date": "2026-11-01",

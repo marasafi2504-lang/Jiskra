@@ -1,9 +1,9 @@
-// Plamínek – Žárka, asistentka podpory (šetrná část zdarma)
+// Plamínek – AmorAI, asistent podpory (šetrná část zdarma)
 // 1) pozdravy a řeči mimo aplikaci odbude (nic neposílá adminovi)
 // 2) dotazy k aplikaci zodpoví ze znalostní báze (klíčová slova + embeddingy gte-small)
 // 3) skutečné problémy předá adminovi do e-mailu s celým textem (přes support_send → trigger)
 // 4) učí se: když admin odpoví na dotaz, uloží se dvojice otázka/odpověď do support_kb
-// 5) triage: když hotová odpověď není, vrátí podklady pro chytrý model Žárky (Cloudflare Workers AI)
+// 5) triage: když hotová odpověď není, vrátí podklady pro chytrý model AmorAI (Cloudflare Workers AI)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const URL = Deno.env.get('SUPABASE_URL')!;
@@ -19,7 +19,7 @@ const cos = (a: number[], b: number[]) => { let s = 0; for (let i = 0; i < a.len
 const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
 
 const GREET = /^(ahoj+|cau+|caues|nazdar|zdar|dobry (den|vecer|rano)|zdravim|hej|hi|hello|hezky den|jak se mas|jak se mate|jak je|co delas|co ty|kdo jsi|diky|dekuji|dekuju|dik|ok|oki|okay|jo|jj|ne|ano|super|fajn|dobre|hm+|aha|cus|cs|lol|haha+|:\)|:-\))[\s!?.,]*$/;
-const APP = ['aplikac', 'apk', 'plamin', 'profil', 'ucet', 'uctu', 'fotk', 'fotku', 'zprav', 'chat', 'shod', 'lajk', 'like', 'swip', 'predplat', 'plus', 'gold', 'platinum', 'platb', 'zaplat', 'penize', 'coin', 'boost', 'prihl', 'odhl', 'heslo', 'email', 'over', 'selfie', 'notifik', 'upozorn', 'filtr', 'smaz', 'blok', 'nahlas', 'seznam', 'rande', 'match', 'chyb', 'nefung', 'nejde', 'nemuz', 'zasek', 'pad', 'nacit', 'google', 'instagram', 'kontakt', 'objevuj', 'souzn', 'zajm', 'zalib', 'horoskop', 'znameni', 'ascend', 'hovor', 'video', 'poloh', 'vzdalen', 'nikoho', 'nikdo', 'vazn', 'kamarad', 'obtez', 'podvod', 'fake', 'reklam', 'refund', 'vrat', 'strh', 'zark', 'schuzk', 'prvni zprav', 'oslovit', 'napsat'];
+const APP = ['aplikac', 'apk', 'plamin', 'profil', 'ucet', 'uctu', 'fotk', 'fotku', 'zprav', 'chat', 'shod', 'lajk', 'like', 'swip', 'predplat', 'plus', 'gold', 'platinum', 'platb', 'zaplat', 'penize', 'coin', 'boost', 'prihl', 'odhl', 'heslo', 'email', 'over', 'selfie', 'notifik', 'upozorn', 'filtr', 'smaz', 'blok', 'nahlas', 'seznam', 'rande', 'match', 'chyb', 'nefung', 'nejde', 'nemuz', 'zasek', 'pad', 'nacit', 'google', 'instagram', 'kontakt', 'objevuj', 'souzn', 'zajm', 'zalib', 'horoskop', 'znameni', 'ascend', 'hovor', 'video', 'poloh', 'vzdalen', 'nikoho', 'nikdo', 'vazn', 'kamarad', 'obtez', 'podvod', 'fake', 'reklam', 'refund', 'vrat', 'strh', 'amor', 'schuzk', 'prvni zprav', 'oslovit', 'napsat'];
 const PROBLEM = ['nefung', 'nejde', 'chyb', 'pad', 'zasek', 'nemuz', 'nenac', 'nenaj', 'nevidi', 'neprisl', 'neprij', 'strh', 'zaplatil', 'refund', 'vrat', 'penize', 'ukrad', 'hack', 'vyhroz', 'obtez', 'zablokov', 'ban', 'smazal', 'zmizel', 'bug', 'error', 'reklamac', 'stiznost'];
 
 type Kb = { id: number; q: string; a: string; k?: string[]; emb?: number[] | null };
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     if (!text) return json({ kind: 'empty' });
     const n = norm(text);
     if (GREET.test(n) || (n.split(' ').length <= 4 && /^(ahoj|cau|dobry|zdravim|nazdar|hej|diky|dekuj|jak se)/.test(n)))
-      return json({ kind: 'greet', answer: 'Ahoj! 👋 Já jsem Žárka a pomáhám s Plamínkem – s profilem, zprávami, platbami nebo když něco nefunguje. S čím ti můžu pomoct?' });
+      return json({ kind: 'greet', answer: 'Ahoj! 👋 Já jsem AmorAI 💘 a pomáhám s Plamínkem – s profilem, zprávami, platbami nebo když něco nefunguje. S čím ti můžu pomoct?' });
 
     const appish = APP.some((k) => n.includes(k));
     const problem = PROBLEM.some((k) => n.includes(k));
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     if (pick && !problem) return json({ kind: 'answer', answer: pick.a, q: pick.q, score: Math.round(bestS * 100) / 100 });
 
-    // Šetrný režim: když hotová odpověď není a nejde o problém pro člověka, vrátí podklady pro chytrou Žárku
+    // Šetrný režim: když hotová odpověď není a nejde o problém pro člověka, vrátí podklady pro chytrého AmorAI
     if (body.triage && !pick && !problem) {
       const ctx = ranked.sort((a, b) => b[0] - a[0]).slice(0, 4).map(([, f]) => ({ q: f.q, a: f.a }));
       return json({ kind: 'unsure', ctx });
