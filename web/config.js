@@ -26,6 +26,9 @@ export const PAYMENT_LINKS = {
 export const CUSTOMER_PORTAL_URL = '';
 
 // Ceny zobrazené v aplikaci (Kč za měsíc) – musí odpovídat cenám ve Stripe
+// Nabídka pro ty, kdo chtěli smazat účet a rozmysleli si to (v Google Play založ produkt s tímto ID)
+export const WINBACK = { tier: 'plus', price: 99, sku: 'jiskra_plus_1m_sleva' };
+
 export const PRICES = {
   plus:     { 1: 199, 6: 129, 12: 99 },
   gold:     { 1: 349, 6: 229, 12: 169 },

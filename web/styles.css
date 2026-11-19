@@ -583,3 +583,7 @@ html[data-theme]:not([data-theme="noc"]) body { background: transparent; }
 .cam .cam-pose { position: absolute; z-index: 1; top: calc(16px + var(--safe-t)); left: 16px; right: 16px; text-align: center; padding: 10px 14px; border-radius: 16px; background: rgba(0,0,0,.55); color: #fff; font-weight: 700; }
 
 .tips button.bug { border-color: rgb(var(--accent-rgb) / .6); color: var(--accent); font-weight: 700; }
+
+.bot-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.bot-acts button { min-height: 36px; padding: 6px 14px; border-radius: 18px; border: 1px solid var(--line-strong); background: var(--card-2); color: #fff; font-size: 13px; font-weight: 600; }
+.winback-badge { display: inline-block; padding: 6px 14px; border-radius: 14px; background: linear-gradient(135deg, #FDE68A, #F59E0B); color: #1a1205; font-weight: 800; font-size: 14px; }

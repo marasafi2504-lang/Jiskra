@@ -1209,6 +1209,61 @@ async function boostSheet() {
 }
 
 // Jednoduchý spodní panel
+async function changePasswordFlow() {
+  const user = S.session && S.session.user;
+  const hasEmail = !!(user && (user.identities || []).some((x) => x.provider === 'email'));
+  const em = S.session && S.session.user.email;
+  if (hasEmail && em) {
+    const old = await dialog({ title: 'Současné heslo', text: 'Pro jistotu nejdřív zadej své současné heslo.', input: true, password: true, placeholder: 'současné heslo', ok: 'Pokračovat' });
+    if (!old) return;
+    const { error: e1 } = await sb.auth.signInWithPassword({ email: em, password: old });
+    if (e1) return toast(/Invalid login/i.test(e1.message) ? 'Současné heslo nesedí.' : errText(e1));
+  }
+  const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, password: true, placeholder: 'nové heslo', ok: 'Uložit' });
+  if (!pw) return;
+  if (pw.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
+  const pw2 = await dialog({ title: 'Zopakuj heslo', text: 'Pro kontrolu ho napiš ještě jednou.', input: true, password: true, placeholder: 'nové heslo znovu', ok: 'Uložit' });
+  if (!pw2) return;
+  if (pw2 !== pw) return toast('Hesla se neshodují.');
+  const { error } = await sb.auth.updateUser({ password: pw });
+  toast(error ? errText(error) : 'Heslo změněno ✓');
+  }
+
+// Smazání účtu: potvrzení Ano/Ne, při Ne nabídka zvýhodněného předplatného
+async function deleteAccountFlow() {
+  const yes = await dialog({ title: 'Opravdu si přeješ smazat účet?',
+    text: 'Smaže se profil, fotky, shody i všechny zprávy a nejde to vrátit.' + (S.plan ? ' Předplatné nejdřív zruš v Google Play, jinak se bude dál strhávat.' : ''),
+    ok: 'Ano, smazat', cancel: 'Ne', danger: true });
+  if (!yes) return winbackSheet();
+  const { error } = await sb.rpc('delete_my_account');
+  if (error) return toast(errText(error));
+  await sb.auth.signOut();
+  toast('Účet byl smazán. Díky, že jsi byl(a) s námi 💜', 5000);
+}
+
+function winbackSheet() {
+  const W = C.WINBACK;
+  const canOffer = W && !S.plan;
+  const w = sheet(`<div style="text-align:center">
+      <div style="font-size:44px">💜</div>
+      <h2 style="margin:6px 0 4px;font-size:22px">Jsme rádi, že zůstáváš!</h2>
+      ${canOffer ? `<p class="lead" style="font-size:15px;margin:6px 0 14px">Máme pro tebe dárek: <b>Plamínek ${planName[W.tier]}</b> na první měsíc za <b>${W.price} Kč</b> místo <s>${C.PRICES[W.tier][1]} Kč</s>.</p>
+        <div class="winback-badge">−${Math.round((1 - W.price / C.PRICES[W.tier][1]) * 100)} % jen teď</div>
+        <button class="btn btn-primary" data-k="take" style="margin-top:14px">Chci slevu</button>`
+      : '<p class="lead" style="font-size:15px">Kdyby sis chtěl(a) jen odpočinout, můžeš profil pozastavit.</p>'}
+      ${S.me && !S.me.paused ? '<button class="btn btn-outline" data-k="pause" style="margin-top:10px">Raději pozastavit profil</button>' : ''}
+      <button class="link-btn" data-k="no" style="margin-top:12px">Ne, díky</button></div>`);
+  const take = $('[data-k=take]', w);
+  if (take) take.onclick = () => { w.remove(); if (!inPlayApp()) return toast('Sleva funguje v aplikaci z Google Play. Platby tam brzy spustíme.', 5000); buyWithPlay(W.tier, 1, W.sku); };
+  const pause = $('[data-k=pause]', w);
+  if (pause) pause.onclick = async () => {
+    const { error } = await sb.from('profiles').update({ paused: true }).eq('id', uid());
+    w.remove(); if (error) return toast(errText(error));
+    S.me.paused = true; toast('Profil pozastaven ⏸ Zapneš ho v Nastavení.', 4000);
+  };
+  $('[data-k=no]', w).onclick = () => w.remove();
+}
+
 function sheet(inner) {
   const w = document.createElement('div');
   w.className = 'sheet-wrap';
@@ -2019,22 +2074,24 @@ const FAQ = [
   { k: ['bezpe', 'rande', 'schůzk', 'schuzk', 'podvod', 'peníze', 'penize'], q: 'Jak se bezpečně potkat?',
     a: 'První schůzku dej na veřejné místo, řekni kamarádovi, kam a s kým jdeš, a dopravu si zařiď sám/sama. Nikdy nikomu z aplikace neposílej peníze ani kódy – i kdyby to znělo naléhavě. Hledej modrý odznak ověřeného profilu. Když ti někdo není příjemný, zablokuj ho a nahlas (tři tečky v chatu).' },
   { k: ['boost', 'zviditel', 'víc lajk', 'vic lajk'], q: 'Jak funguje Boost?',
-    a: 'Boost tě na 30 minut posune mezi první profily, které lidé v okolí uvidí – obvykle to znamená mnohem víc zobrazení a lajků. Spustíš ho bleskem ⚡ nahoře v Objevuj. Gold má 1 Boost měsíčně v ceně, Platinum 3; jinak stojí 500 coinů.' },
+    a: 'Boost tě na 30 minut posune mezi první profily, které lidé v okolí uvidí – obvykle to znamená mnohem víc zobrazení a lajků. Spustíš ho bleskem ⚡ nahoře v Objevuj. Gold má 1 Boost měsíčně v ceně, Platinum 3; jinak stojí 500 coinů.', actions: [['boost', '⚡ Spustit Boost'], ['go:#/coins', '🪙 Boost Coiny']] },
   { k: ['coin', 'mince', 'měna', 'mena'], q: 'Co jsou Boost Coiny?',
-    a: 'Coiny jsou měna v Plamínku. Koupíš je v Profil → ikona coinu. Utratíš je za Boost (500), Super Like navíc (100), odhalení lajku nebo zprávy (150), vrácení swipu (50) a zprávu navíc (100). Za ověření profilu dostaneš 500 coinů zdarma.' },
+    a: 'Coiny jsou měna v Plamínku. Koupíš je v Profil → ikona coinu. Utratíš je za Boost (500), Super Like navíc (100), odhalení lajku nebo zprávy (150), vrácení swipu (50) a zprávu navíc (100). Za ověření profilu dostaneš 500 coinů zdarma.', actions: [['go:#/coins', '🪙 Otevřít Boost Coiny']] },
   { k: ['předplat', 'predplat', 'zrušit', 'zrusit', 'gold', 'platinum', 'plus', 'platb', 'peníze', 'penize', 'vrátit', 'vratit', 'refund'], q: 'Předplatné a platby',
-    a: 'Předplatné spravuje Google Play. Zrušení: aplikace Obchod Play → ikona profilu → Platby a předplatné → Předplatná → Plamínek → Zrušit. Placené funkce ti zůstanou do konce zaplaceného období. Když se ti předplatné po nákupu neukázalo, otevři Předplatné a klepni na „Obnovit nákup“.' },
+    a: 'Předplatné spravuje Google Play. Zrušení: aplikace Obchod Play → ikona profilu → Platby a předplatné → Předplatná → Plamínek → Zrušit. Placené funkce ti zůstanou do konce zaplaceného období. Když se ti předplatné po nákupu neukázalo, otevři Předplatné a klepni na „Obnovit nákup“.', actions: [['go:#/premium', '👑 Zobrazit předplatné']] },
   { k: ['ověř', 'over', 'selfie', 'fajfk', 'odznak'], q: 'Ověření profilu',
-    a: 'V Profilu klepni na „Ověř se selfie“, vyfoť se se zadaným gestem a odešli. Kontrolujeme ručně, obvykle do 24 hodin. Ověřený profil dostane fialový štít a 500 coinů jako odměnu.' },
+    a: 'V Profilu klepni na „Ověř se selfie“, vyfoť se se zadaným gestem a odešli. Kontrolujeme ručně, obvykle do 24 hodin. Ověřený profil dostane fialový štít a 500 coinů jako odměnu.', actions: [['go:#/verify', '📸 Ověřit se teď']] },
   { k: ['nikoho', 'nikdo', 'žádn', 'zadn', 'prázdn', 'prazdn', 'objevuj'], q: 'V Objevuj nikoho nevidím',
-    a: 'Zkus v Objevuj → Filtry rozšířit věk a vzdálenost a zkontroluj, že máš povolenou polohu (Profil → Upravit profil → Poloha). Pokud máš profil pozastavený, zapni ho v Nastavení. Noví lidé přibývají každý den.' },
+    a: 'Zkus v Objevuj → Filtry rozšířit věk a vzdálenost a zkontroluj, že máš povolenou polohu (Profil → Upravit profil → Poloha). Pokud máš profil pozastavený, zapni ho v Nastavení. Noví lidé přibývají každý den.', actions: [['go:#/filters', '🎚️ Upravit filtry'], ['go:#/edit', '✏️ Upravit profil']] },
   { k: ['notifik', 'upozorn', 'oznámen', 'oznamen'], q: 'Nechodí mi upozornění',
-    a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Plamínek → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Plamínek úsporu baterie.' },
+    a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Plamínek → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Plamínek úsporu baterie.', actions: [['go:#/settings', '🔔 Nastavení upozornění']] },
   { k: ['smaz', 'smaž', 'zruš účet', 'zrus ucet', 'odstran', 'pauz', 'pozastav'], q: 'Smazání nebo pozastavení účtu',
-    a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.' },
+    a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.', actions: [['pause', '⏸️ Pozastavit profil'], ['delete', '🗑️ Smazat účet']] },
   { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
     a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Pokud jsi v ohrožení, volej 112.' },
-  { k: ['heslo', 'přihl', 'prihl', 'login', 'e-mail', 'email'], q: 'Problém s přihlášením',
+  { k: ['heslo', 'hesla', 'heslem', 'password'], q: 'Změna hesla',
+    a: 'Heslo změníš v Profil → Nastavení → Změnit heslo. Pokud ho nevíš, na přihlašovací obrazovce klepni na „Zapomněl(a) jsi heslo?“ a pošleme ti odkaz.', ask: 'Chceš si teď změnit heslo?', actions: [['password', '🔑 Ano, změnit heslo'], ['no', 'Ne']] },
+  { k: ['přihl', 'prihl', 'login', 'e-mail', 'email'], q: 'Problém s přihlášením',
     a: 'Na přihlašovací obrazovce klepni na „Zapomenuté heslo“ – pošleme ti odkaz. Pokud ses registroval(a) přes Google nebo Facebook, přihlas se stejným tlačítkem. E-mail a heslo změníš v Profil → Nastavení.' },
   { k: ['zpráv', 'zprav', 'napsat', 'bez shody', 'psát', 'psat'], q: 'Jak napsat někomu bez shody?',
     a: 'V Objevuj klepni na ✈️ a napiš zprávu. Zdarma můžeš napsat 1 člověku denně (Gold 3, Platinum 5), další zprávy stojí 100 coinů. Když ti dotyčný odpoví, vznikne shoda.' },
@@ -2068,9 +2125,24 @@ async function renderSupport() {
   };
   const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(text)}`, false, 'bot');
   const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Plamínku</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
+  const botActions = (acts, ask) => {
+    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(ask || 'Chceš to udělat rovnou?')}<div class="bot-acts">${acts.map(([k, l]) => `<button type="button" data-a="${k}">${l}</button>`).join('')}</div>`, false, 'bot');
+    $$('[data-a]', el).forEach((b) => (b.onclick = async () => {
+      if (b.dataset.a === 'delete') return deleteAccountFlow();
+      if (b.dataset.a === 'password') return changePasswordFlow();
+      if (b.dataset.a.startsWith('go:')) { location.hash = b.dataset.a.slice(3); return; }
+      if (b.dataset.a === 'boost') { location.hash = '#/discover'; setTimeout(() => { if (typeof boostSheet === 'function') boostSheet(); }, 400); return; }
+      if (b.dataset.a === 'no') return bot('Dobře 🙂 Kdybys cokoli potřeboval(a), jsem tady.');
+      if (b.dataset.a === 'pause') {
+        const { error } = await sb.from('profiles').update({ paused: true }).eq('id', uid());
+        if (error) return toast(errText(error));
+        S.me.paused = true; bot('Hotovo, profil je pozastavený ⏸️ Nikdo nový tě neuvidí. Zapneš ho zpátky v Nastavení → Pozastavit profil.');
+      }
+    }));
+  };
   const chips = () => {
     $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button><button type="button" data-bug class="bug">🐞 Nahlásit chybu</button>';
-    $$('#sTips [data-f]').forEach((b) => (b.onclick = () => { const f = FAQ[+b.dataset.f]; bubble(esc(f.q), true); setTimeout(() => { bot(f.a); bot('Pomohlo to? Když ne, napiš mi dole, co přesně se děje – předám to našemu týmu.'); }, 350); }));
+    $$('#sTips [data-f]').forEach((b) => (b.onclick = () => { const f = FAQ[+b.dataset.f]; bubble(esc(f.q), true); setTimeout(() => { bot(f.a); if (f.actions) botActions(f.actions, f.ask); else bot('Pomohlo to? Když ne, napiš mi dole, co přesně se děje – předám to našemu týmu.'); }, 350); }));
     $('#sTips [data-bug]').onclick = async () => {
       const t = await dialog({ title: 'Nahlásit chybu', text: 'Popiš, co nefunguje a co jsi zrovna dělal(a). Informace o zařízení přidáme automaticky.', input: true, placeholder: 'Např. po klepnutí na Odeslat se fotka nenahraje…', ok: 'Odeslat' });
       if (!t) return;
@@ -2110,6 +2182,7 @@ async function renderSupport() {
     if (error) { inp.value = text; return toast(String(error.message).includes('too_many') ? 'Napsal(a) jsi toho hodně najednou, zkus to prosím za chvíli.' : errText(error)); }
     human({ body: text, from_admin: false, created_at: new Date().toISOString() });
     const f = faqFind(text);
+    if (f && f.actions) setTimeout(() => botActions(f.actions, f.ask), 900);
     setTimeout(() => {
       if (f) bot(`Možná pomůže tohle: ${f.a}`);
       if (!acked) { bot('Tvoji zprávu jsem předal(a) týmu Plamínku. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜'); acked = true; }
@@ -2414,31 +2487,9 @@ async function renderSettings() {
     const { error } = await sb.auth.updateUser({ email: email.trim() }, { emailRedirectTo: location.origin + location.pathname });
     toast(error ? errText(error) : 'Hotovo. Potvrď změnu odkazem ve STARÉM i NOVÉM e-mailu.', 6000);
   };
-  $('[data-k=pass]').onclick = async () => {
-    const em = S.session && S.session.user.email;
-    if (hasEmail && em) {
-      const old = await dialog({ title: 'Současné heslo', text: 'Pro jistotu nejdřív zadej své současné heslo.', input: true, password: true, placeholder: 'současné heslo', ok: 'Pokračovat' });
-      if (!old) return;
-      const { error: e1 } = await sb.auth.signInWithPassword({ email: em, password: old });
-      if (e1) return toast(/Invalid login/i.test(e1.message) ? 'Současné heslo nesedí.' : errText(e1));
-    }
-    const pw = await dialog({ title: hasEmail ? 'Nové heslo' : 'Nastavit heslo', text: 'Aspoň 8 znaků. Pak se můžeš přihlásit i e-mailem.', input: true, password: true, placeholder: 'nové heslo', ok: 'Uložit' });
-    if (!pw) return;
-    if (pw.length < 8) return toast('Heslo musí mít aspoň 8 znaků.');
-    const pw2 = await dialog({ title: 'Zopakuj heslo', text: 'Pro kontrolu ho napiš ještě jednou.', input: true, password: true, placeholder: 'nové heslo znovu', ok: 'Uložit' });
-    if (!pw2) return;
-    if (pw2 !== pw) return toast('Hesla se neshodují.');
-    const { error } = await sb.auth.updateUser({ password: pw });
-    toast(error ? errText(error) : 'Heslo změněno ✓');
-  };
+  $('[data-k=pass]').onclick = () => changePasswordFlow();
   $('[data-k=logout]').onclick = () => sb.auth.signOut();
-  $('[data-k=delete]').onclick = async () => {
-    if (!(await dialog({ title: 'Smazat účet?', text: 'Smaže se profil, fotky, shody i všechny zprávy. Nejde to vrátit.' + (S.plan ? ' Předplatné nejdřív zruš v Google Play, jinak se bude dál strhávat.' : '') + ' Pokud si chceš jen odpočinout, můžeš profil pozastavit.', ok: 'Smazat navždy', danger: true }))) return;
-    const { error } = await sb.rpc('delete_my_account');
-    if (error) return toast(errText(error));
-    await sb.auth.signOut();
-    toast('Účet byl smazán.');
-  };
+  $('[data-k=delete]').onclick = () => deleteAccountFlow();
 
   const renderBlocks = async () => {
     const { data } = await sb.rpc('my_blocks');
@@ -2701,8 +2752,8 @@ function buyWithStripe(tier, period) {
   location.href = url.toString();
 }
 
-async function buyWithPlay(tier, period) {
-  const sku = playSku(tier, period);
+async function buyWithPlay(tier, period, skuOverride) {
+  const sku = skuOverride || playSku(tier, period);
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
     const [details] = await service.getDetails([sku]);

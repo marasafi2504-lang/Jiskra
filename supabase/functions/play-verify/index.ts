@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
   }
 
   // ---------- Předplatné ----------
-  const m = /^jiskra_(plus|gold|platinum)_(1|6|12)m$/.exec(String(sku ?? ""));
+  const m = /^jiskra_(plus|gold|platinum)_(1|6|12)m(?:_sleva)?$/.exec(String(sku ?? ""));
   if (!m) return json({ error: "bad_request" }, 400);
   const plan = m[1];
 
