@@ -184,7 +184,8 @@ function dialog({ title, text = '', input = false, password = false, placeholder
 const svg = (body, { size = 24, color = 'currentColor', fill = 'none', sw = 2 } = {}) =>
   `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" style="color:${color}" fill="${fill === color ? 'currentColor' : fill}" stroke="${fill === 'none' ? 'currentColor' : 'none'}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const I = {
-  flame: (o) => svg('<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>', o),
+  // vlastní znak Plamínku: plamínek svíčky (souměrná kapka s jádrem)
+  flame: (o) => svg('<path d="M12.4 2C11.9 4.5 14.9 7.5 14.9 12.6C14.9 15.6 13.6 17.6 12 17.6C10.4 17.6 9.1 15.6 9.1 12.6C9.1 8.8 11.8 6 12.4 2z"/><path d="M12 17.6v2.4M10 21.5h4"/>', o),
   heart: (o) => svg('<path d="M12 21l-1.4-1.3C5.4 15 2 12 2 8.3 2 5.3 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.3 22 8.3c0 3.7-3.4 6.7-8.6 11.4z"/>', o),
   heartLine: (o) => svg('<path d="M12 20l-1.2-1.1C6 14.6 3 11.9 3 8.6 3 6 5 4 7.6 4c1.5 0 3 .7 4.4 2 1.4-1.3 2.9-2 4.4-2C19 4 21 6 21 8.6c0 3.3-3 6-7.8 10.3z"/>', o),
   chat: (o) => svg('<path d="M4 5h16v11H8l-4 4z"/>', o),
@@ -2307,13 +2308,13 @@ function renderFilters() {
 // Nastavení účtu
 // ---------------------------------------------------------------------
 const THEMES = [
-  { id: 'noc', name: 'Noc', bg: '#0B0614', sw: 'linear-gradient(135deg,#0B0614,#2A1650 60%,#9333EA)' },
+  { id: 'noc', name: 'Půlnoc', bg: '#060B18', sw: 'linear-gradient(135deg,#060B18,#2F5BEA 60%,#5EEAD4)' },
+  { id: 'fialova', name: 'Fialová', bg: '#0B0614', sw: 'linear-gradient(135deg,#0B0614,#2A1650 55%,#9333EA)' },
   { id: 'aurora', name: 'Aurora', bg: '#050A14', sw: 'linear-gradient(135deg,#050A14,#DB2777 55%,#67E8F9)' },
-  { id: 'soumrak', name: 'Soumrak', bg: '#120806', sw: 'linear-gradient(135deg,#120806,#EA580C 55%,#FDBA74)' },
   { id: 'ocean', name: 'Oceán', bg: '#03111A', sw: 'linear-gradient(135deg,#03111A,#0284C7 55%,#7DD3FC)' },
-  { id: 'hvezdy', name: 'Hvězdy', bg: '#070512', sw: 'radial-gradient(2px 2px at 30% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 60%,#fff,transparent),linear-gradient(135deg,#070512,#2A1650)' },
+  { id: 'hvezdy', name: 'Hvězdy', bg: '#04070F', sw: 'radial-gradient(2px 2px at 30% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 60%,#fff,transparent),linear-gradient(135deg,#04070F,#182A4B)' },
 ];
-const curTheme = () => document.documentElement.dataset.theme || 'noc';
+const curTheme = () => { const t = document.documentElement.dataset.theme; return THEMES.some((x) => x.id === t) ? t : 'noc'; };
 function setTheme(id) {
   const t = THEMES.find((x) => x.id === id) || THEMES[0];
   if (t.id === 'noc') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t.id;

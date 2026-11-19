@@ -1,30 +1,30 @@
 :root {
-  --bg: #0B0614;
-  --bg-2: #0E0819;
-  --card: #140B22;
-  --card-2: #1E1036;
-  --line: #3B2366;
-  --line-2: #24153D;
-  --line-strong: #6D3FC0;
-  --primary: #9333EA;
-  --primary-2: #A855F7;
-  --accent: #C084FC;
-  --accent-soft: #D8B4FE;
+  --bg: #060B18;
+  --bg-2: #08101F;
+  --card: #0C1528;
+  --card-2: #12203A;
+  --line: #1E3560;
+  --line-2: #13233F;
+  --line-strong: #3A64B8;
+  --primary: #2F5BEA;
+  --primary-2: #4C7DFF;
+  --accent: #5EEAD4;
+  --accent-soft: #99F6E4;
   --text: #FFFFFF;
-  --text-2: #D9CDEE;
-  --muted: #A897C4;
+  --text-2: #CFDDF2;
+  --muted: #8EA3C2;
   --gold: #FBBF24;
   --red: #F87171;
   --blue: #60A5FA;
   --green: #34D399;
-  --primary-3: #7C3AED;
-  --card-3: #2A1650;
-  --primary-rgb: 147 51 234;
-  --primary2-rgb: 168 85 247;
-  --primary3-rgb: 124 58 237;
-  --bg-rgb: 11 6 20;
-  --card-rgb: 20 11 34;
-  --accent-rgb: 240 171 252;
+  --primary-3: #1E3FA8;
+  --card-3: #182A4B;
+  --primary-rgb: 47 91 234;
+  --primary2-rgb: 76 125 255;
+  --primary3-rgb: 30 63 168;
+  --bg-rgb: 6 11 24;
+  --card-rgb: 12 21 40;
+  --accent-rgb: 94 234 212;
   --radius: 22px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
@@ -56,7 +56,7 @@ button { cursor: pointer; }
 
 /* logo */
 .brand { display: flex; align-items: center; gap: 12px; }
-.logo-mark { width: 40px; height: 40px; border-radius: 13px; background: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-mark { width: 40px; height: 40px; border-radius: 13px; background: linear-gradient(140deg, var(--accent), var(--primary) 70%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .logo-mark.big { width: 72px; height: 72px; border-radius: 22px; animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(1.08); box-shadow: 0 0 40px rgb(var(--primary-rgb) / .6); } }
 .brand-name { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
@@ -367,7 +367,7 @@ button.chip[aria-pressed="true"] { background: var(--primary); border-color: var
 /* ===================== v3 – modernější vzhled ===================== */
 h1, h2, .hero-title, .card .name, .d-name, .brand-name { font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.015em; }
 h2 { font-size: 22px; font-weight: 700; margin: 0; }
-.btn-primary { background: linear-gradient(135deg, var(--primary-2) 0%, var(--primary-3) 55%, #6D28D9 100%); }
+.btn-primary { background: linear-gradient(135deg, var(--primary-2) 0%, var(--primary-3) 55%, var(--primary-3) 100%); }
 .btn-gold { background: linear-gradient(135deg, #FDE68A, #FBBF24 60%, #F59E0B); color: var(--card); box-shadow: 0 8px 28px rgba(251, 191, 36, .35); height: 52px; }
 .round.like, .send { background: linear-gradient(135deg, var(--primary-2), var(--primary-3)); }
 .tabbar { background: rgba(14, 8, 25, .82); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-top-color: rgba(109, 63, 192, .35); }
@@ -523,19 +523,16 @@ button.chip.on { background: var(--primary); border-color: var(--primary); color
 
 
 /* ===== Motivy prostředí ===== */
+html[data-theme="fialova"] {
+  --bg: #0B0614; --bg-2: #0E0819; --card: #140B22; --card-2: #1E1036; --line: #3B2366; --line-2: #24153D; --line-strong: #6D3FC0; --primary: #9333EA; --primary-2: #A855F7; --accent: #C084FC; --accent-soft: #D8B4FE; --text-2: #D9CDEE; --muted: #A897C4; --primary-3: #7C3AED; --card-3: #2A1650; --primary-rgb: 147 51 234; --primary2-rgb: 168 85 247; --primary3-rgb: 124 58 237; --bg-rgb: 11 6 20; --card-rgb: 20 11 34; --accent-rgb: 240 171 252;
+}
+
 html[data-theme="aurora"] {
   --bg: #050A14; --bg-2: #07101C; --card: #0B1424; --card-2: #111E36; --card-3: #17284A;
   --line: #1F3A66; --line-2: #12233F; --line-strong: #3B6FD0;
   --primary: #DB2777; --primary-2: #EC4899; --primary-3: #7C3AED; --accent: #67E8F9; --accent-soft: #A5F3FC;
   --text-2: #CFE3F5; --muted: #8FA7C4;
   --primary-rgb: 219 39 119; --primary2-rgb: 236 72 153; --primary3-rgb: 124 58 237; --bg-rgb: 5 10 20; --card-rgb: 11 20 36; --accent-rgb: 103 232 249;
-}
-html[data-theme="soumrak"] {
-  --bg: #120806; --bg-2: #180B08; --card: #1F0F0B; --card-2: #2B1510; --card-3: #3A1C14;
-  --line: #5A2A1C; --line-2: #2E1610; --line-strong: #C2552B;
-  --primary: #EA580C; --primary-2: #F97316; --primary-3: #DB2777; --accent: #FDBA74; --accent-soft: #FED7AA;
-  --text-2: #F3DDD2; --muted: #C4A193;
-  --primary-rgb: 234 88 12; --primary2-rgb: 249 115 22; --primary3-rgb: 219 39 119; --bg-rgb: 18 8 6; --card-rgb: 31 15 11; --accent-rgb: 253 186 116;
 }
 html[data-theme="ocean"] {
   --bg: #03111A; --bg-2: #041722; --card: #072030; --card-2: #0A2C42; --card-3: #0E3A56;
@@ -544,9 +541,9 @@ html[data-theme="ocean"] {
   --text-2: #CDE8F3; --muted: #8DB3C4;
   --primary-rgb: 2 132 199; --primary2-rgb: 14 165 233; --primary3-rgb: 13 148 136; --bg-rgb: 3 17 26; --card-rgb: 7 32 48; --accent-rgb: 125 211 252;
 }
-html[data-theme="hvezdy"] { --bg: #070512; --card: #110C22; }
+html[data-theme="hvezdy"] { --bg: #04070F; --card: #0A1224; }
 /* živé pozadí */
-html[data-theme="aurora"] body::before, html[data-theme="soumrak"] body::before, html[data-theme="ocean"] body::before, html[data-theme="hvezdy"] body::before {
+html[data-theme="aurora"] body::before, html[data-theme="ocean"] body::before, html[data-theme="hvezdy"] body::before {
   content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
 }
 html[data-theme="aurora"] body::before {
@@ -554,10 +551,6 @@ html[data-theme="aurora"] body::before {
               radial-gradient(45% 35% at 80% 30%, rgba(103,232,249,.22), transparent 70%),
               radial-gradient(50% 40% at 50% 85%, rgba(124,58,237,.30), transparent 70%);
   animation: aurora 18s ease-in-out infinite alternate;
-}
-html[data-theme="soumrak"] body::before {
-  background: radial-gradient(60% 40% at 50% 0%, rgba(249,115,22,.30), transparent 70%),
-              radial-gradient(50% 35% at 80% 100%, rgba(219,39,119,.22), transparent 70%);
 }
 html[data-theme="ocean"] body::before {
   background: radial-gradient(55% 40% at 20% 10%, rgba(14,165,233,.25), transparent 70%),
@@ -570,7 +563,7 @@ html[data-theme="hvezdy"] body::before {
     radial-gradient(1.5px 1.5px at 55% 35%, #fff, transparent), radial-gradient(1px 1px at 75% 15%, #fff, transparent),
     radial-gradient(1px 1px at 85% 60%, #fff, transparent), radial-gradient(1.5px 1.5px at 40% 90%, #fff, transparent),
     radial-gradient(1px 1px at 65% 80%, #fff, transparent), radial-gradient(1px 1px at 20% 50%, #fff, transparent),
-    radial-gradient(60% 40% at 50% 0%, rgba(147,51,234,.25), transparent 70%);
+    radial-gradient(60% 40% at 50% 0%, rgba(47,91,234,.22), transparent 70%);
   animation: twinkle 6s ease-in-out infinite alternate;
 }
 @keyframes aurora { from { transform: translate3d(-4%, -2%, 0) rotate(0deg); } to { transform: translate3d(4%, 3%, 0) rotate(8deg); } }
