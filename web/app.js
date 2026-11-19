@@ -182,7 +182,7 @@ function dialog({ title, text = '', input = false, password = false, placeholder
 // Ikony
 // ---------------------------------------------------------------------
 const svg = (body, { size = 24, color = 'currentColor', fill = 'none', sw = 2 } = {}) =>
-  `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" stroke="${fill === 'none' ? color : 'none'}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+  `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" style="color:${color}" fill="${fill === color ? 'currentColor' : fill}" stroke="${fill === 'none' ? 'currentColor' : 'none'}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const I = {
   flame: (o) => svg('<path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>', o),
   heart: (o) => svg('<path d="M12 21l-1.4-1.3C5.4 15 2 12 2 8.3 2 5.3 4.4 3 7.4 3c1.7 0 3.4.8 4.6 2.1C13.2 3.8 14.9 3 16.6 3 19.6 3 22 5.3 22 8.3c0 3.7-3.4 6.7-8.6 11.4z"/>', o),
@@ -269,26 +269,26 @@ async function loadProviders() {
   return enabledProviders;
 }
 const verifiedBadge = (size = 22) =>
-  `<svg role="img" aria-label="Ověřený profil" width="${size}" height="${size}" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" fill="#A855F7" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  `<svg role="img" aria-label="Ověřený profil" width="${size}" height="${size}" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" style="fill:var(--primary-2)" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const logo = (size = 40) => `<div class="logo-mark" style="width:${size}px;height:${size}px">${I.flame({ size: Math.round(size * 0.55), color: '#fff' })}</div>`;
 
 const waves = (variant = 'top') => variant === 'top'
   ? `<svg class="waves" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMaxYMin slice" fill="none">
-      <path d="M140 0 C220 60 300 40 390 120" stroke="#C084FC" stroke-opacity=".7" stroke-width="2"/>
-      <path d="M180 0 C250 80 320 70 390 170" stroke="#A855F7" stroke-opacity=".5" stroke-width="1.5"/>
-      <path d="M230 0 C280 90 340 110 390 220" stroke="#C084FC" stroke-opacity=".35" stroke-width="1"/>
-      <path d="M0 700 C90 750 140 844 260 844" stroke="#9333EA" stroke-opacity=".5" stroke-width="2"/>
-      <path d="M0 750 C70 780 110 830 170 844" stroke="#C084FC" stroke-opacity=".35" stroke-width="1.5"/></svg>`
+      <path d="M140 0 C220 60 300 40 390 120" style="stroke:var(--accent)" stroke-opacity=".7" stroke-width="2"/>
+      <path d="M180 0 C250 80 320 70 390 170" style="stroke:var(--primary-2)" stroke-opacity=".5" stroke-width="1.5"/>
+      <path d="M230 0 C280 90 340 110 390 220" style="stroke:var(--accent)" stroke-opacity=".35" stroke-width="1"/>
+      <path d="M0 700 C90 750 140 844 260 844" style="stroke:var(--primary)" stroke-opacity=".5" stroke-width="2"/>
+      <path d="M0 750 C70 780 110 830 170 844" style="stroke:var(--accent)" stroke-opacity=".35" stroke-width="1.5"/></svg>`
   : `<svg class="waves" aria-hidden="true" viewBox="0 0 390 844" preserveAspectRatio="xMidYMin slice" fill="none">
-      <path d="M0 180 C120 120 260 240 390 140" stroke="#A855F7" stroke-opacity=".45" stroke-width="2"/>
-      <path d="M0 220 C140 160 250 290 390 190" stroke="#C084FC" stroke-opacity=".3" stroke-width="1.5"/>
-      <path d="M0 700 C120 640 270 780 390 660" stroke="#9333EA" stroke-opacity=".5" stroke-width="2"/></svg>`;
+      <path d="M0 180 C120 120 260 240 390 140" style="stroke:var(--primary-2)" stroke-opacity=".45" stroke-width="2"/>
+      <path d="M0 220 C140 160 250 290 390 190" style="stroke:var(--accent)" stroke-opacity=".3" stroke-width="1.5"/>
+      <path d="M0 700 C120 640 270 780 390 660" style="stroke:var(--primary)" stroke-opacity=".5" stroke-width="2"/></svg>`;
 
 function tabbar(active) {
   const unread = S.matches.reduce((n, m) => n + (m.unread || 0), 0) + (S.reqCount || 0) + (S.supUnread || 0);
   const t = (hash, key, label, icon) => `
     <a href="${hash}" ${active === key ? 'aria-current="page"' : ''}>
-      ${icon({ color: active === key ? '#C084FC' : '#A897C4' })}${label}
+      ${icon({ color: active === key ? 'var(--accent)' : 'var(--muted)' })}${label}
       ${key === 'chats' && unread ? `<span class="dot">${unread > 99 ? '99+' : unread}</span>` : ''}
     </a>`;
   return `<nav class="tabbar" aria-label="Hlavní menu">
@@ -544,9 +544,9 @@ function renderAuth(mode = 'welcome') {
         <p class="lead">Lidé ve tvém okolí, ověřené profily a kompatibilita podle osobnosti. Na lásku i nová přátelství.</p>
       </div>
       <div class="feature-row">
-        <div>${I.shield({ size: 22, color: '#C084FC' })}<span>Ověřené profily</span></div>
-        <div>${I.pin({ size: 22, color: '#C084FC' })}<span>Lidé v okolí</span></div>
-        <div>${I.brain({ size: 22, color: '#C084FC' })}<span>Typy osobnosti</span></div>
+        <div>${I.shield({ size: 22, color: 'var(--accent)' })}<span>Ověřené profily</span></div>
+        <div>${I.pin({ size: 22, color: 'var(--accent)' })}<span>Lidé v okolí</span></div>
+        <div>${I.brain({ size: 22, color: 'var(--accent)' })}<span>Typy osobnosti</span></div>
       </div>
       <div style="flex:1;min-height:28px"></div>
       <div style="display:flex;flex-direction:column;gap:12px">
@@ -629,7 +629,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function renderCheckMail(email) {
   $('#app').innerHTML = `
   <div class="screen pad" style="padding-top:24px;text-align:center">
-    <div style="margin:80px 0 20px">${I.mail({ size: 56, color: '#C084FC' })}</div>
+    <div style="margin:80px 0 20px">${I.mail({ size: 56, color: 'var(--accent)' })}</div>
     <h1 style="font-size:30px">Zkontroluj <span style="color:var(--accent)">e-mail</span></h1>
     <p class="lead">Poslali jsme potvrzovací odkaz na<br><b>${esc(email)}</b>.<br>Klepni na něj a pak se vrať a přihlas se.</p>
     <p class="lead" style="font-size:14px">E-mail má zatím anglický předmět <b>„Confirm your email address“</b>. Stačí v něm klepnout na <b>Confirm your mail</b>.<br>Nic nepřišlo? Mrkni do spamu nebo hromadné pošty.</p>
@@ -663,7 +663,7 @@ function photoGridHTML(photos) {
            ${i === 0 ? '<span class="pmain">Hlavní</span>' : `<button type="button" class="pstar" data-main="${i}" aria-label="Nastavit jako hlavní">${I.star({ size: 14, fill: '#fff' })}</button>`}
            <button type="button" class="pdel" data-del="${i}" aria-label="Smazat fotku">${I.x({ size: 14, color: '#fff', sw: 3 })}</button>
          </div>`
-      : `<label class="pslot ${i === photos.length ? 'next' : ''}">${I.plus({ size: 26, color: '#A897C4' })}
+      : `<label class="pslot ${i === photos.length ? 'next' : ''}">${I.plus({ size: 26, color: 'var(--muted)' })}
            <input type="file" accept="image/*" class="sr-only" data-add>
            <span class="sr-only">Přidat fotku</span></label>`);
   }
@@ -706,7 +706,7 @@ function bindPrompts(root, prompts, rerender) {
     w.className = 'sheet-wrap';
     w.innerHTML = `<div class="sheet" role="dialog" aria-label="Vyber otázku" style="max-height:80vh;overflow:auto">
       <h2 style="margin:0 0 4px;font-size:20px">Vyber otázku</h2>
-      ${PROMPTS.filter((q) => !used.has(q)).map((q) => `<button class="settings-row" data-q="${esc(q)}"><span>${esc(q)}</span>${I.chevron({ size: 18, color: '#A897C4' })}</button>`).join('')}
+      ${PROMPTS.filter((q) => !used.has(q)).map((q) => `<button class="settings-row" data-q="${esc(q)}"><span>${esc(q)}</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</button>`).join('')}
     </div>`;
     document.body.appendChild(w);
     w.onclick = (e) => { if (e.target === w) w.remove(); };
@@ -854,9 +854,9 @@ function renderWizard() {
     <div class="field" style="margin-top:8px"><span class="lbl">Typ osobnosti (nepovinné)</span><div id="w-pers">${personalityPickerHTML(W.personality)}</div></div>`;
   if (n === 5) body = `
     <p class="script">poslední krok</p><h1 class="wiz-h">Skoro hotovo!</h1>
-    <div class="setup-card">${I.pin({ size: 26, color: '#C084FC' })}<div><b>Lidé v okolí</b><span>Ukážeme ti, kdo je blízko. Ukládáme jen přibližnou polohu (~1 km).</span></div>
+    <div class="setup-card">${I.pin({ size: 26, color: 'var(--accent)' })}<div><b>Lidé v okolí</b><span>Ukážeme ti, kdo je blízko. Ukládáme jen přibližnou polohu (~1 km).</span></div>
       <button type="button" class="btn btn-outline btn-sm" id="w-geo">${W.lat ? 'Povoleno ✓' : 'Povolit'}</button></div>
-    ${pushSupported() ? `<div class="setup-card">${I.bell({ size: 26, color: '#C084FC' })}<div><b>Upozornění</b><span>Dáme ti vědět o nové shodě a zprávě.</span></div>
+    ${pushSupported() ? `<div class="setup-card">${I.bell({ size: 26, color: 'var(--accent)' })}<div><b>Upozornění</b><span>Dáme ti vědět o nové shodě a zprávě.</span></div>
       <button type="button" class="btn btn-outline btn-sm" id="w-push">Povolit</button></div>` : ''}
     <label class="consent" for="w-consent">
       <input type="checkbox" id="w-consent" ${W.consent ? 'checked' : ''}>
@@ -963,7 +963,7 @@ function renderEdit() {
         <div class="field"><label for="e-max">Věk do</label><input class="input" id="e-max" type="number" min="18" max="99" value="${esc(p.max_age)}"></div></div>
       <div class="field"><label for="e-dist">Maximální vzdálenost: <b id="e-distv">${p.max_distance_km >= 1000 ? 'kdekoli' : p.max_distance_km + ' km'}</b></label>
         <input type="range" id="e-dist" min="5" max="1000" step="5" value="${esc(p.max_distance_km)}" class="range"></div>
-      <div class="setup-card">${I.pin({ size: 24, color: '#C084FC' })}<div><b>Poloha</b><span>${p.lat ? 'Nastavená (přibližně)' : 'Zatím nenastavená – vzdálenosti se nezobrazí'}</span></div>
+      <div class="setup-card">${I.pin({ size: 24, color: 'var(--accent)' })}<div><b>Poloha</b><span>${p.lat ? 'Nastavená (přibližně)' : 'Zatím nenastavená – vzdálenosti se nezobrazí'}</span></div>
         <button type="button" class="btn btn-outline btn-sm" id="e-geo">Aktualizovat</button></div>
       <button class="btn btn-primary" type="submit" style="margin:20px 0 calc(24px + var(--safe-b))">Uložit změny</button>
     </form></div>`;
@@ -1005,12 +1005,12 @@ function compatLabel(c) { return c >= 85 ? 'Skvělá shoda' : c >= 70 ? 'Dobrá 
 
 function badgesHTML(p) {
   const b = [];
-  if (p.distance_km != null) b.push(`<span class="badge-chip">${I.pin({ size: 13, color: '#C084FC' })}${p.distance_km} km</span>`);
+  if (p.distance_km != null) b.push(`<span class="badge-chip">${I.pin({ size: 13, color: 'var(--accent)' })}${p.distance_km} km</span>`);
   if (p.compat != null) b.push(`<span class="badge-chip hot">💜 ${p.compat} %</span>`);
-  if (p.goal && GOALS[p.goal]) b.push(`<span class="badge-chip">${I.target({ size: 12, color: '#C084FC' })}${GOALS[p.goal]}</span>`);
+  if (p.goal && GOALS[p.goal]) b.push(`<span class="badge-chip">${I.target({ size: 12, color: 'var(--accent)' })}${GOALS[p.goal]}</span>`);
   if (p.personality) b.push(`<span class="badge-chip">${esc(p.personality)}</span>`);
   if (p.height_cm) b.push(`<span class="badge-chip">${p.height_cm} cm</span>`);
-  if (p.zodiac) b.push(`<span class="badge-chip">${I.moon({ size: 12, color: '#C084FC' })}${esc(p.zodiac)}</span>`);
+  if (p.zodiac) b.push(`<span class="badge-chip">${I.moon({ size: 12, color: 'var(--accent)' })}${esc(p.zodiac)}</span>`);
   if (p.mode === 'pratele') b.push('<span class="badge-chip">Hledá přátele</span>');
   return b.join('');
 }
@@ -1040,17 +1040,17 @@ function detailHTML(p, actions) {
   blocks.push(photos[0] ? `<div class="d-photo" style="${bgImg(photos[0])}"></div>` : '');
   blocks.push(`<div class="d-sec"><h2 class="d-name">${esc(p.name)}, ${esc(p.age)} ${p.verified ? verifiedBadge(24) : ''}</h2>
     <div class="badges" style="margin-top:8px">${badgesHTML(p)}${p.active_recently ? '<span class="badge-chip"><span class="active-dot"></span>Aktivní dnes</span>' : ''}</div>
-    <div class="meta" style="margin-top:10px">${p.job ? `<span>${I.bag({ size: 15, color: '#C084FC' })}${esc(p.job)}</span>` : ''}${p.city ? `<span>${I.pin({ size: 15, color: '#C084FC' })}${esc(p.city)}</span>` : ''}</div></div>`);
+    <div class="meta" style="margin-top:10px">${p.job ? `<span>${I.bag({ size: 15, color: 'var(--accent)' })}${esc(p.job)}</span>` : ''}${p.city ? `<span>${I.pin({ size: 15, color: 'var(--accent)' })}${esc(p.city)}</span>` : ''}</div></div>`);
   if (prompts[0]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[0].q)}</div><div class="pa">${esc(prompts[0].a)}</div></div>`);
   if (photos[1]) blocks.push(`<div class="d-photo" style="${bgImg(photos[1])}"></div>`);
   const facts = [p.height_cm ? [I.ruler, `${p.height_cm} cm`] : null,
     ...DETAILS.filter(([k, , o]) => p[k] && o[p[k]]).map(([k, , o, ic]) => [I[ic], o[p[k]]])].filter(Boolean);
-  if (facts.length) blocks.push(`<div class="d-sec"><p class="label-caps">Základní info</p><div class="facts">${facts.map(([ic, t]) => `<span>${ic({ size: 16, color: '#C084FC' })}${esc(t)}</span>`).join('')}</div></div>`);
+  if (facts.length) blocks.push(`<div class="d-sec"><p class="label-caps">Základní info</p><div class="facts">${facts.map(([ic, t]) => `<span>${ic({ size: 16, color: 'var(--accent)' })}${esc(t)}</span>`).join('')}</div></div>`);
   if (p.bio) blocks.push(`<div class="d-sec"><p class="label-caps">O mně</p><p class="lead" style="font-size:15px;white-space:pre-wrap">${esc(p.bio)}</p></div>`);
   if (prompts[1]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[1].q)}</div><div class="pa">${esc(prompts[1].a)}</div></div>`);
   if (photos[2]) blocks.push(`<div class="d-photo" style="${bgImg(photos[2])}"></div>`);
   if ((p.interests || []).length) blocks.push(`<div class="d-sec"><p class="label-caps">Zájmy</p><div class="chips">${p.interests.map((i) => `<span class="chip ${S.me && (S.me.interests || []).includes(i) ? 'same' : ''}">${esc(i)}</span>`).join('')}</div></div>`);
-  if (p.personality) blocks.push(`<div class="d-sec pers-card"><div>${I.brain({ size: 28, color: '#C084FC' })}</div><div><b>${esc(p.personality)} · ${esc(TYPES[p.personality] || '')}</b>
+  if (p.personality) blocks.push(`<div class="d-sec pers-card"><div>${I.brain({ size: 28, color: 'var(--accent)' })}</div><div><b>${esc(p.personality)} · ${esc(TYPES[p.personality] || '')}</b>
     <span>${p.compat != null ? `${compatLabel(p.compat)} s tebou: ${p.compat} %` : 'Doplň si svůj typ a uvidíš, jak moc si sedíte.'}</span></div></div>`);
   if (prompts[2]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[2].q)}</div><div class="pa">${esc(prompts[2].a)}</div></div>`);
   photos.slice(3).forEach((ph) => blocks.push(`<div class="d-photo" style="${bgImg(ph)}"></div>`));
@@ -1135,7 +1135,7 @@ async function renderDiscover() {
     <div class="topbar">
       <div class="brand">${logo(36)}<h1>Objevuj</h1></div>
       <div class="actions">
-        <button class="icon-btn boost-btn" id="boostBtn" aria-label="Boost – zviditelnit profil">${I.bolt({ size: 20, fill: '#C084FC' })}</button>
+        <button class="icon-btn boost-btn" id="boostBtn" aria-label="Boost – zviditelnit profil">${I.bolt({ size: 20, fill: 'var(--accent)' })}</button>
         <a class="icon-btn" href="#/premium" aria-label="Předplatné">${I.crown({ size: 20, color: '#FBBF24' })}</a>
         <a class="icon-btn" href="#/filters" aria-label="Filtry">${I.sliders({ size: 20, color: '#fff' })}</a>
       </div>
@@ -1489,7 +1489,7 @@ function adSlotHTML(slot, cls = '') {
   }
   return `<a class="ad house ${cls}" href="#/premium"><span class="ad-label">Plamínek Gold</span>
     <div class="house-ic">${I.crown({ size: 22, color: '#1a0b2e' })}</div>
-    <div><b>Bez reklam a s neomezenými lajky</b><span>Uvidíš, kdo tě lajkl, Top výběr a Boost.</span></div>${I.chevron({ size: 18, color: '#A897C4' })}</a>`;
+    <div><b>Bez reklam a s neomezenými lajky</b><span>Uvidíš, kdo tě lajkl, Top výběr a Boost.</span></div>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>`;
 }
 function fillAds(root) {
   if (!C.ADS || !C.ADS.adsenseClient) return;
@@ -1612,7 +1612,7 @@ const fmtDur = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padSta
 function msgInnerHTML(msg) {
   const t = msg.media_type || (msg.kind === 'image' ? 'photo' : 'text');
   if (t === 'sticker') return `<img src="${esc(msg.image_url)}" alt="Nálepka" class="msg-sticker" loading="lazy">`;
-  if (t === 'audio') return `<div class="voice">${I.mic({ size: 18, color: '#C084FC' })}<audio controls preload="metadata" src="${esc(msg.image_url)}"></audio></div>`;
+  if (t === 'audio') return `<div class="voice">${I.mic({ size: 18, color: 'var(--accent)' })}<audio controls preload="metadata" src="${esc(msg.image_url)}"></audio></div>`;
   if (t === 'photo' && msg.image_url) return `<img src="${esc(msg.image_url)}" alt="Fotka" class="msg-img" loading="lazy">`;
   return esc(msg.body);
 }
@@ -1631,18 +1631,18 @@ async function renderChat(matchId) {
       <button class="chat-who" data-profile aria-label="Zobrazit profil ${esc(m.name)}">
         <div class="avatar sm" style="${bgImg(m.photo_url)}">${m.photo_url ? '' : initial(m.name)}</div>
         <div class="who"><b>${esc(m.name)}, ${esc(m.age)} ${m.verified ? verifiedBadge(16) : ''}</b>
-          <span class="small" id="status" style="color:${m.active_recently ? '#6EE7B7' : '#A897C4'}">${m.active_recently ? 'Aktivní dnes' : 'Klepni pro profil'}</span></div>
+          <span class="small" id="status" style="color:${m.active_recently ? '#6EE7B7' : 'var(--muted)'}">${m.active_recently ? 'Aktivní dnes' : 'Klepni pro profil'}</span></div>
       </button>
-      <button class="icon-btn ghost" data-act="call" aria-label="Videohovor">${I.video({ size: 22, color: '#C084FC' })}</button>
+      <button class="icon-btn ghost" data-act="call" aria-label="Videohovor">${I.video({ size: 22, color: 'var(--accent)' })}</button>
       <button class="icon-btn ghost" data-act="menu" aria-label="Možnosti">${I.dots({ size: 22 })}</button>
     </div>
     <div class="messages" id="msgs">
-      <div class="notice">${I.shield({ size: 14, color: '#C084FC' })} Shoda ${timeLabel(m.created_at)} · Nikdy neposílej peníze lidem, které neznáš osobně.</div>
+      <div class="notice">${I.shield({ size: 14, color: 'var(--accent)' })} Shoda ${timeLabel(m.created_at)} · Nikdy neposílej peníze lidem, které neznáš osobně.</div>
     </div>
     <div class="typing" id="typing" hidden><span></span><span></span><span></span></div>
     <div class="tips" id="tips"></div>
     <form class="composer" id="composer">
-      <button type="button" class="icon-btn ghost" data-act="more" aria-label="Fotka nebo nálepka">${I.plus({ size: 22, color: '#C084FC' })}</button>
+      <button type="button" class="icon-btn ghost" data-act="more" aria-label="Fotka nebo nálepka">${I.plus({ size: 22, color: 'var(--accent)' })}</button>
       <input type="file" accept="image/*" class="sr-only" id="imgIn" tabindex="-1">
       <label for="msgIn" class="sr-only">Napiš zprávu</label>
       <input class="input" id="msgIn" autocomplete="off" maxlength="2000" placeholder="Napiš zprávu…" enterkeyhint="send">
@@ -1801,7 +1801,7 @@ async function renderChat(matchId) {
 
   // Fotka / nálepka
   $('[data-act=more]').onclick = () => {
-    const w = sheet(`<div class="sheet-tabs"><button type="button" class="btn btn-outline btn-sm" data-k="photo">${I.image({ size: 18, color: '#C084FC' })} Poslat fotku</button>
+    const w = sheet(`<div class="sheet-tabs"><button type="button" class="btn btn-outline btn-sm" data-k="photo">${I.image({ size: 18, color: 'var(--accent)' })} Poslat fotku</button>
       <button type="button" class="btn btn-primary btn-sm" data-k="date">☕ Navrhnout rande</button></div>
       <p class="label-caps" style="margin:6px 0 0">Nálepky</p>
       <div class="sticker-grid">${STICKERS.map((cp) => `<button type="button" data-cp="${cp}" aria-label="Nálepka"><img src="${stickerUrl(cp)}" alt="" loading="lazy" width="56" height="56"></button>`).join('')}</div>`);
@@ -1859,7 +1859,7 @@ async function renderChat(matchId) {
   $('[data-act=menu]').onclick = () => {
     const w = sheet(`
       <button class="btn btn-outline" data-k="profile">Zobrazit profil</button>
-      <button class="btn btn-outline" data-k="call">${I.video({ size: 18, color: '#C084FC' })} Videohovor</button>
+      <button class="btn btn-outline" data-k="call">${I.video({ size: 18, color: 'var(--accent)' })} Videohovor</button>
       <button class="btn btn-outline" data-k="unmatch">Zrušit shodu</button>
       <button class="btn btn-outline" data-k="block">${I.ban({ size: 18, color: '#FCA5A5' })} Blokovat</button>
       <button class="btn btn-danger" data-k="report">Nahlásit</button>
@@ -2046,7 +2046,7 @@ async function renderSupport() {
     <div class="chat-head">
       <a class="icon-btn ghost" href="#/chats" aria-label="Zpět na zprávy">${I.back({ size: 22, color: '#fff' })}</a>
       <div class="chat-who" style="cursor:default">${logo(40)}<div class="who"><b>Podpora Plamínku</b><span class="small" style="color:#6EE7B7">Asistent hned · člověk obvykle do 24 h</span></div></div>
-      <a class="icon-btn ghost" href="mailto:${esc(C.SUPPORT_EMAIL)}" aria-label="Napsat e-mail podpoře">${I.mail({ size: 22, color: '#C084FC' })}</a>
+      <a class="icon-btn ghost" href="mailto:${esc(C.SUPPORT_EMAIL)}" aria-label="Napsat e-mail podpoře">${I.mail({ size: 22, color: 'var(--accent)' })}</a>
     </div>
     <div class="messages" id="sMsgs"></div>
     <div class="tips" id="sTips"></div>
@@ -2065,7 +2065,7 @@ async function renderSupport() {
     box.scrollTop = box.scrollHeight;
     return el;
   };
-  const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: '#C084FC' })} Asistent</span>${esc(text)}`, false, 'bot');
+  const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(text)}`, false, 'bot');
   const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Plamínku</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
   const chips = () => {
     $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button>';
@@ -2120,7 +2120,7 @@ async function renderProfile() {
         <div style="position:relative;width:132px;height:132px">
           <svg aria-hidden="true" width="132" height="132" viewBox="0 0 132 132" style="position:absolute;inset:0">
             <circle cx="66" cy="66" r="62" fill="none" stroke="#24153D" stroke-width="6"/>
-            <circle cx="66" cy="66" r="62" fill="none" stroke="#A855F7" stroke-width="6" stroke-linecap="round" stroke-dasharray="${dash} 390" transform="rotate(-90 66 66)"/></svg>
+            <circle cx="66" cy="66" r="62" fill="none" style="stroke:var(--primary-2)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${dash} 390" transform="rotate(-90 66 66)"/></svg>
           <div class="avatar" style="position:absolute;top:12px;left:12px;width:108px;height:108px;font-size:40px;${bgImg(photos[0])}">${photos[0] ? '' : initial(p.name)}</div>
           <span class="pct-pill">${pct} % hotovo</span>
         </div>
@@ -2133,23 +2133,23 @@ async function renderProfile() {
       </div>
       <div class="pad" style="padding-top:22px;display:flex;flex-direction:column;gap:12px">
         ${!p.verified ? `<a class="promo" href="#/verify">
-          <div class="logo-mark" style="width:48px;height:48px;border-radius:16px;background:#2A1650">${I.shield({ size: 26, color: '#C084FC' })}</div>
+          <div class="logo-mark" style="width:48px;height:48px;border-radius:16px;background:#2A1650">${I.shield({ size: 26, color: 'var(--accent)' })}</div>
           <div style="flex:1"><b style="font-size:16px">${vs === 'pending' ? 'Ověření čeká na kontrolu' : vs === 'rejected' ? 'Ověření neprošlo – zkus znovu' : 'Ověř se selfie'}</b>
-            <div class="small" style="color:#C9BCE0">${vs === 'pending' ? 'Obvykle do 24 hodin.' : 'Ověřené profily dostávají víc lajků.'}</div></div>${I.chevron({ size: 20, color: '#C084FC' })}</a>` : ''}
+            <div class="small" style="color:#C9BCE0">${vs === 'pending' ? 'Obvykle do 24 hodin.' : 'Ověřené profily dostávají víc lajků.'}</div></div>${I.chevron({ size: 20, color: 'var(--accent)' })}</a>` : ''}
         <a class="promo" href="#/premium">
           <div class="logo-mark" style="width:48px;height:48px;border-radius:16px;background:#2A1650">${I.crown({ size: 26, color: '#FBBF24' })}</div>
           <div style="flex:1">${S.plan
             ? `<b style="font-size:16px">Plamínek <span style="color:var(--gold)">${planName[S.plan]}</span></b><div class="small" style="color:#C9BCE0">Aktivní do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}</div>`
-            : `<b style="font-size:16px">Plamínek <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: '#C084FC' })}</a>
+            : `<b style="font-size:16px">Plamínek <span style="color:var(--gold)">Gold</span></b><div class="small" style="color:#C9BCE0">Uvidíš, kdo tě lajkl, a získáš víc shod</div>`}</div>${I.chevron({ size: 20, color: 'var(--accent)' })}</a>
         <div class="quick-grid">
-          <a href="#/filters">${I.sliders({ size: 22, color: '#C084FC' })}<span>Filtry</span></a>
+          <a href="#/filters">${I.sliders({ size: 22, color: 'var(--accent)' })}<span>Filtry</span></a>
           <a href="#/coins">${I.coin({ size: 22 })}<span data-coins>${fmtCoins(S.coins)}</span></a>
-          <button type="button" data-boost>${I.bolt({ size: 22, fill: '#C084FC' })}<span>Boost</span></button>
-          <a href="#/settings">${I.gear({ size: 22, color: '#C084FC' })}<span>Nastavení</span></a>
+          <button type="button" data-boost>${I.bolt({ size: 22, fill: 'var(--accent)' })}<span>Boost</span></button>
+          <a href="#/settings">${I.gear({ size: 22, color: 'var(--accent)' })}<span>Nastavení</span></a>
         </div>
         <div>
-          <button class="settings-row" data-share><span>Pozvat kamarády</span>${I.chevron({ size: 18, color: '#A897C4' })}</button>
-          ${p.is_admin ? `<a class="settings-row" href="#/admin"><span>${I.gear({ size: 18, color: '#FBBF24' })} Administrace</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>` : ''}
+          <button class="settings-row" data-share><span>Pozvat kamarády</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</button>
+          ${p.is_admin ? `<a class="settings-row" href="#/admin"><span>${I.gear({ size: 18, color: '#FBBF24' })} Administrace</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>` : ''}
         </div>
         ${adSlotHTML('profile')}
       </div>
@@ -2180,15 +2180,15 @@ async function renderCoins() {
       ${inPlay ? '' : '<p class="small muted" style="margin-top:8px">Coiny se kupují v aplikaci Plamínek z Google Play.</p>'}
       <p class="label-caps" style="margin-top:22px">Za co je utratíš</p>
       <div class="group">
-        <div class="settings-row"><span>${I.bolt({ size: 18, fill: '#C084FC' })} Boost na 30 minut</span><b class="cost">${fmtCoins(C.COIN_COSTS.boost)}</b></div>
+        <div class="settings-row"><span>${I.bolt({ size: 18, fill: 'var(--accent)' })} Boost na 30 minut</span><b class="cost">${fmtCoins(C.COIN_COSTS.boost)}</b></div>
         <div class="settings-row"><span>${I.star({ size: 18, fill: '#60A5FA' })} Super Like navíc</span><b class="cost">${fmtCoins(C.COIN_COSTS.super)}</b></div>
-        <div class="settings-row"><span>${I.eye({ size: 18, color: '#C084FC' })} Odhalit, kdo tě lajkl</span><b class="cost">${fmtCoins(C.COIN_COSTS.reveal)}</b></div>
+        <div class="settings-row"><span>${I.eye({ size: 18, color: 'var(--accent)' })} Odhalit, kdo tě lajkl</span><b class="cost">${fmtCoins(C.COIN_COSTS.reveal)}</b></div>
         <div class="settings-row"><span>${I.undo({ size: 18, color: '#FBBF24' })} Vrátit swipe</span><b class="cost">${fmtCoins(C.COIN_COSTS.rewind)}</b></div>
       </div>
       <p class="label-caps" style="margin-top:22px">Získej zdarma</p>
       <div class="group">
         ${S.me.verified ? `<div class="settings-row"><span>${I.shield({ size: 18, color: '#34D399' })} Ověřený profil</span><span class="small muted">+${fmtCoins(C.COIN_VERIFY_BONUS)} ✓</span></div>`
-          : `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: '#C084FC' })} Ověř profil selfie</span><b class="cost plus">+${fmtCoins(C.COIN_VERIFY_BONUS)}</b></a>`}
+          : `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: 'var(--accent)' })} Ověř profil selfie</span><b class="cost plus">+${fmtCoins(C.COIN_VERIFY_BONUS)}</b></a>`}
       </div>
       <p class="label-caps" style="margin-top:22px">Historie</p>
       <div class="group" id="hist"><div class="settings-row"><span class="muted">Načítám…</span></div></div>
@@ -2306,54 +2306,76 @@ function renderFilters() {
 // ---------------------------------------------------------------------
 // Nastavení účtu
 // ---------------------------------------------------------------------
+const THEMES = [
+  { id: 'noc', name: 'Noc', bg: '#0B0614', sw: 'linear-gradient(135deg,#0B0614,#2A1650 60%,#9333EA)' },
+  { id: 'aurora', name: 'Aurora', bg: '#050A14', sw: 'linear-gradient(135deg,#050A14,#DB2777 55%,#67E8F9)' },
+  { id: 'soumrak', name: 'Soumrak', bg: '#120806', sw: 'linear-gradient(135deg,#120806,#EA580C 55%,#FDBA74)' },
+  { id: 'ocean', name: 'Oceán', bg: '#03111A', sw: 'linear-gradient(135deg,#03111A,#0284C7 55%,#7DD3FC)' },
+  { id: 'hvezdy', name: 'Hvězdy', bg: '#070512', sw: 'radial-gradient(2px 2px at 30% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 60%,#fff,transparent),linear-gradient(135deg,#070512,#2A1650)' },
+];
+const curTheme = () => document.documentElement.dataset.theme || 'noc';
+function setTheme(id) {
+  const t = THEMES.find((x) => x.id === id) || THEMES[0];
+  if (t.id === 'noc') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t.id;
+  try { localStorage.setItem('plaminek-theme', t.id); } catch (e) { /* nic */ }
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t.bg;
+}
+
 async function renderSettings() {
   const p = S.me;
   const user = S.session.user;
   const notify = { matches: true, messages: true, likes: true, ...(p.notify || {}) };
   const idents = (user.identities || []).map((x) => x.provider);
   const hasEmail = idents.includes('email');
-  const row = (icon, label, right = '', attrs = '') => `<button type="button" class="settings-row" ${attrs}><span>${icon}${label}</span>${right || I.chevron({ size: 18, color: '#A897C4' })}</button>`;
+  const row = (icon, label, right = '', attrs = '') => `<button type="button" class="settings-row" ${attrs}><span>${icon}${label}</span>${right || I.chevron({ size: 18, color: 'var(--muted)' })}</button>`;
   const sw = (id, on, label) => `<label class="settings-row"><span>${label}</span><span class="switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span class="sl"></span></span></label>`;
   app.innerHTML = `${waves()}<div class="screen">
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Nastavení</h1><span style="width:44px"></span></div>
     <div class="scroll pad" style="padding-top:6px">
       <p class="label-caps">Profil</p>
       <div class="group">
-        ${sw('s-pause', p.paused, `${I.pause({ size: 18, color: '#C084FC' })} Pozastavit profil<small>Nikdo nový tě neuvidí, shody a zprávy zůstanou.</small>`)}
-        <a class="settings-row" href="#/edit"><span>${I.user({ size: 18, color: '#C084FC' })} Upravit profil</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-        <a class="settings-row" href="#/filters"><span>${I.sliders({ size: 18, color: '#C084FC' })} Filtry</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-        ${!p.verified ? `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: '#C084FC' })} Ověřit profil</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>` : ''}
+        ${sw('s-pause', p.paused, `${I.pause({ size: 18, color: 'var(--accent)' })} Pozastavit profil<small>Nikdo nový tě neuvidí, shody a zprávy zůstanou.</small>`)}
+        <a class="settings-row" href="#/edit"><span>${I.user({ size: 18, color: 'var(--accent)' })} Upravit profil</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        <a class="settings-row" href="#/filters"><span>${I.sliders({ size: 18, color: 'var(--accent)' })} Filtry</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        ${!p.verified ? `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: 'var(--accent)' })} Ověřit profil</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>` : ''}
       </div>
+      <p class="label-caps">Vzhled</p>
+      <div class="group"><div class="theme-grid" id="themes">${THEMES.map((t) => `<button type="button" class="theme-opt ${curTheme() === t.id ? 'on' : ''}" data-t="${t.id}" aria-pressed="${curTheme() === t.id}"><i style="background:${t.sw}"></i>${t.name}</button>`).join('')}</div></div>
       <p class="label-caps">Upozornění</p>
       <div class="group">
-        ${pushSupported() ? sw('s-push', false, `${I.bell({ size: 18, color: '#C084FC' })} Push notifikace`) : '<div class="settings-row"><span class="muted">Tenhle prohlížeč notifikace neumí.</span></div>'}
+        ${pushSupported() ? sw('s-push', false, `${I.bell({ size: 18, color: 'var(--accent)' })} Push notifikace`) : '<div class="settings-row"><span class="muted">Tenhle prohlížeč notifikace neumí.</span></div>'}
         ${sw('n-matches', notify.matches, 'Nové shody')}
         ${sw('n-messages', notify.messages, 'Nové zprávy')}
         ${sw('n-likes', notify.likes, 'Super Like a lajky')}
       </div>
       <p class="label-caps">Účet</p>
       <div class="group">
-        <div class="settings-row"><span>${I.mail({ size: 18, color: '#C084FC' })} E-mail</span><span class="small muted">${esc(user.email || '–')}</span></div>
-        <div class="settings-row"><span>${I.key({ size: 18, color: '#C084FC' })} Přihlášení</span><span class="small muted">${idents.map((x) => (x === 'email' ? 'E-mail' : (PROVIDERS[x] || { name: x }).name)).join(', ') || '–'}</span></div>
-        ${row(I.mail({ size: 18, color: '#C084FC' }), 'Změnit e-mail', '', 'data-k="email"')}
-        ${row(I.key({ size: 18, color: '#C084FC' }), hasEmail ? 'Změnit heslo' : 'Nastavit heslo', '', 'data-k="pass"')}
+        <div class="settings-row"><span>${I.mail({ size: 18, color: 'var(--accent)' })} E-mail</span><span class="small muted">${esc(user.email || '–')}</span></div>
+        <div class="settings-row"><span>${I.key({ size: 18, color: 'var(--accent)' })} Přihlášení</span><span class="small muted">${idents.map((x) => (x === 'email' ? 'E-mail' : (PROVIDERS[x] || { name: x }).name)).join(', ') || '–'}</span></div>
+        ${row(I.mail({ size: 18, color: 'var(--accent)' }), 'Změnit e-mail', '', 'data-k="email"')}
+        ${row(I.key({ size: 18, color: 'var(--accent)' }), hasEmail ? 'Změnit heslo' : 'Nastavit heslo', '', 'data-k="pass"')}
         <a class="settings-row" href="#/premium"><span>${I.crown({ size: 18, color: '#FBBF24' })} Předplatné</span><span class="small muted">${S.plan ? `${planName[S.plan]} do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}` : 'Žádné'}</span></a>
       </div>
       <p class="label-caps">Bezpečí</p>
       <div class="group" id="s-blocks"><div class="settings-row"><span class="muted">Načítám blokované…</span></div></div>
       <p class="label-caps">Informace</p>
       <div class="group">
-        <a class="settings-row" href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener"><span>Ochrana soukromí</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-        <a class="settings-row" href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener"><span>Podmínky používání</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
-        <a class="settings-row" href="mailto:${esc(C.SUPPORT_EMAIL)}"><span>Napsat podpoře</span>${I.chevron({ size: 18, color: '#A897C4' })}</a>
+        <a class="settings-row" href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener"><span>Ochrana soukromí</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        <a class="settings-row" href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener"><span>Podmínky používání</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        <a class="settings-row" href="mailto:${esc(C.SUPPORT_EMAIL)}"><span>Napsat podpoře</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
       </div>
       <div class="group" style="margin-top:18px">
-        ${row(I.logout({ size: 18, color: '#C084FC' }), 'Odhlásit se', ' ', 'data-k="logout"')}
+        ${row(I.logout({ size: 18, color: 'var(--accent)' }), 'Odhlásit se', ' ', 'data-k="logout"')}
         ${row(I.trash({ size: 18, color: '#FCA5A5' }), '<span style="color:#FCA5A5">Smazat účet</span>', ' ', 'data-k="delete"')}
       </div>
       <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">Plamínek · MS Studio · verze 1.0</p>
     </div></div>`;
 
+  $$('#themes [data-t]').forEach((b) => (b.onclick = () => {
+    setTheme(b.dataset.t);
+    $$('#themes [data-t]').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+    toast('Motiv změněn ✨');
+  }));
   $('#s-pause').onchange = async (e) => {
     const paused = e.target.checked;
     const { error } = await sb.from('profiles').update({ paused }).eq('id', uid());
@@ -2409,7 +2431,7 @@ async function renderSettings() {
     const box = $('#s-blocks'); if (!box) return;
     box.innerHTML = data && data.length ? data.map((b) => `<div class="settings-row"><span><div class="avatar xs" style="${bgImg(b.photo_url)}">${b.photo_url ? '' : initial(b.name)}</div>${esc(b.name)}</span>
         <button type="button" class="btn btn-outline btn-sm" data-unblock="${esc(b.id)}">Odblokovat</button></div>`).join('')
-      : `<div class="settings-row"><span>${I.ban({ size: 18, color: '#C084FC' })} Blokovaní lidé</span><span class="small muted">Nikdo</span></div>`;
+      : `<div class="settings-row"><span>${I.ban({ size: 18, color: 'var(--accent)' })} Blokovaní lidé</span><span class="small muted">Nikdo</span></div>`;
     $$('[data-unblock]', box).forEach((b) => (b.onclick = async () => {
       const { error } = await sb.from('blocks').delete().eq('blocker', uid()).eq('blocked', b.dataset.unblock);
       if (error) return toast(errText(error));
@@ -2430,7 +2452,7 @@ function renderVerify() {
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Ověření</h1><span style="width:44px"></span></div>
     <div class="scroll pad" style="text-align:center">
       ${p.verified ? `<div class="empty">${verifiedBadge(72)}<h1>Jsi ověřený/á!</h1><p class="lead">U tvého profilu svítí odznak ověření.</p></div>`
-      : vs === 'pending' ? `<div class="empty">${I.shield({ size: 64, color: '#C084FC' })}<h1>Čeká na kontrolu</h1><p class="lead">Tvoje selfie zkontrolujeme, obvykle do 24 hodin. Dáme ti vědět.</p></div>`
+      : vs === 'pending' ? `<div class="empty">${I.shield({ size: 64, color: 'var(--accent)' })}<h1>Čeká na kontrolu</h1><p class="lead">Tvoje selfie zkontrolujeme, obvykle do 24 hodin. Dáme ti vědět.</p></div>`
       : `<p class="script" style="transform:none;margin-top:8px">ukaž, že jsi to ty</p>
         <h1 style="margin:6px 0 10px">Ověř se selfie</h1>
         ${vs === 'rejected' ? '<p class="lead" style="color:#FCA5A5">Minulé ověření neprošlo – ujisti se, že je na fotce dobře vidět obličej a gesto.</p>' : ''}
@@ -2601,7 +2623,7 @@ function renderPremium() {
         ${Object.keys(TIERS).map((t) => `<button type="button" data-v="${t}" aria-pressed="${t === tier}">${planName[t]}</button>`).join('')}
       </div>
       <div class="panel" style="margin-top:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${I.crown({ size: 24, color: tier === 'gold' ? '#FBBF24' : tier === 'plus' ? '#C084FC' : '#E9D5FF' })}<b style="font-size:18px">Plamínek ${planName[tier]}</b></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${I.crown({ size: 24, color: tier === 'gold' ? '#FBBF24' : tier === 'plus' ? 'var(--accent)' : '#E9D5FF' })}<b style="font-size:18px">Plamínek ${planName[tier]}</b></div>
         ${TIERS[tier].map((f) => `<div class="feature"><span class="tick">${I.check({ size: 13, color: '#fff', sw: 3.2 })}</span>${esc(f)}</div>`).join('')}
       </div>
       <div class="periods" role="group" aria-label="Délka předplatného" style="margin-top:20px" id="periods">
