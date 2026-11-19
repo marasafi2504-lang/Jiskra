@@ -21,9 +21,23 @@ const S = {
 // ---------------------------------------------------------------------
 // Data: zájmy, otázky do profilu, typy osobnosti
 // ---------------------------------------------------------------------
-const INTERESTS = ['Cestování', 'Hory', 'Příroda', 'Káva', 'Vaření', 'Hudba', 'Koncerty', 'Festivaly', 'Sport', 'Běh', 'Fitness',
-  'Jóga', 'Kolo', 'Lyže', 'Knihy', 'Film', 'Seriály', 'Hry', 'Tanec', 'Umění', 'Fotografie', 'Psi', 'Kočky', 'Víno', 'Pivo',
-  'Technologie', 'Móda', 'Divadlo', 'Podcasty', 'Zahrada', 'Auta', 'Motorky', 'Rybaření', 'Meditace', 'Dobrovolnictví'];
+// Podrobný katalog zálib (nápady od maminky 💜). Klepnutí = baví mě, druhé klepnutí = ❤️ miluju.
+const INTEREST_CATS = [
+  ['🌲', 'Příroda a pohyb venku', ['Procházky v přírodě', 'Dlouhé procházky', 'Túry na hory', 'Houbaření', 'Objímání stromů', 'Výlety', 'Kempování', 'Rybaření', 'Zahrada', 'Venčení pejska']],
+  ['❄️', 'Zima', ['Lyže', 'Snowboard', 'Boby a sáňky', 'Běžky', 'Bruslení', 'Zimní procházky po horách', 'Horské chaty a restaurace']],
+  ['☀️', 'Léto a voda', ['Koupání', 'Kolo', 'In-line brusle', 'Vodáctví', 'Paddleboard', 'Plážový volejbal', 'Grilování']],
+  ['💪', 'Sport', ['Běh', 'Fitness', 'Jóga', 'Plavání', 'Tanec', 'Fotbal', 'Tenis', 'Lezení']],
+  ['🔮', 'Duchovno', ['Výklad karet', 'Astrologie', 'Numerologie', 'Meditace', 'Bylinky', 'Krystaly a energie']],
+  ['🎶', 'Zábava a kultura', ['Diskotéky', 'Zpěv', 'Karaoke', 'Koncerty', 'Festivaly', 'Divadlo', 'Film', 'Seriály', 'Knihy', 'Hry', 'Podcasty']],
+  ['🍷', 'Jídlo a pití', ['Vaření', 'Pečení', 'Káva', 'Víno', 'Pivo', 'Dobré restaurace']],
+  ['🎨', 'Tvoření a další', ['Cestování', 'Fotografie', 'Umění', 'Ruční práce', 'Móda', 'Technologie', 'Auta', 'Motorky', 'Psi', 'Kočky', 'Dobrovolnictví']],
+];
+const INTERESTS = INTEREST_CATS.flatMap((c) => c[2]);
+const LEGACY_CAT = { Hory: 0, Příroda: 0, Hudba: 5, Sport: 3 };
+const CAT_OF = Object.assign({}, LEGACY_CAT, ...INTEREST_CATS.map(([, , l], i) => Object.fromEntries(l.map((x) => [x, i]))));
+const MAX_INT = 20, MAX_LOVE = 8;
+const RELAX = { doma: '🛋️ Doma v klidu', tv: '📺 Film nebo seriál', postel: '😴 Válení v posteli', priroda: '🌳 Venku v přírodě', zpev: '🎤 Zpěv a hudba',
+  sport: '🏃 Sport', vylety: '🚗 Výlety', pratele: '🥂 S přáteli', kavarna: '☕ Kavárna', vareni: '🍲 Vaření', cteni: '📖 Čtení', hry: '🎮 Hry' };
 
 const PROMPTS = ['Ideální rande je…', 'Nejvíc mě rozesměje…', 'Hledám někoho, kdo…', 'V neděli ráno mě najdeš…',
   'Neodolám…', 'Moje skrytá schopnost je…', 'Zelená vlajka, kterou hledám…', 'Překvapí tě, že…',
@@ -70,6 +84,117 @@ function zodiacOf(d) {
     [7, 23, 'Rak'], [8, 23, 'Lev'], [9, 23, 'Panna'], [10, 23, 'Váhy'], [11, 22, 'Štír'], [12, 22, 'Střelec'], [13, 1, 'Kozoroh']];
   for (const [mm, dd, name] of z) if (m < mm || (m === mm && day < dd)) return name;
   return 'Kozoroh';
+}
+
+const SIGNS = ['Beran', 'Býk', 'Blíženci', 'Rak', 'Lev', 'Panna', 'Váhy', 'Štír', 'Střelec', 'Kozoroh', 'Vodnář', 'Ryby'];
+const SIGN_EMOJI = { Beran: '♈', Býk: '♉', Blíženci: '♊', Rak: '♋', Lev: '♌', Panna: '♍', Váhy: '♎', Štír: '♏', Střelec: '♐', Kozoroh: '♑', Vodnář: '♒', Ryby: '♓' };
+const BIRTH_PLACES = { Praha: [50.08, 14.42], Brno: [49.2, 16.61], Ostrava: [49.82, 18.26], Plzeň: [49.75, 13.38], Liberec: [50.77, 15.06],
+  Olomouc: [49.59, 17.25], 'České Budějovice': [48.97, 14.47], 'Hradec Králové': [50.21, 15.83], 'Ústí nad Labem': [50.66, 14.03],
+  Pardubice: [50.04, 15.78], Zlín: [49.23, 17.67], Jihlava: [49.4, 15.59], 'Karlovy Vary': [50.23, 12.87], Jablonec: [50.72, 15.17],
+  'Mladá Boleslav': [50.41, 14.9], Opava: [49.94, 17.9], Bratislava: [48.15, 17.11], Košice: [48.72, 21.26], Žilina: [49.22, 18.74], 'Jiné místo v ČR': [49.8, 15.5] };
+// Ascendent z data, času a místa narození (pro zábavu; čas bereme jako středoevropský, v létě od r. 1979 letní čas)
+function ascendantOf(date, time, place) {
+  const ll = BIRTH_PLACES[place]; if (!date || !time || !ll) return null;
+  const [y, mo, d] = date.split('-').map(Number), [h, mi] = time.split(':').map(Number);
+  const dst = y >= 1979 && mo >= 4 && mo <= 9 ? 1 : 0;
+  const ut = Date.UTC(y, mo - 1, d, h - 1 - dst, mi) / 86400000 + 2440587.5;
+  const rad = Math.PI / 180, eps = 23.4393 * rad, phi = ll[0] * rad;
+  const lst = (((280.46061837 + 360.98564736629 * (ut - 2451545) + ll[1]) % 360) + 360) % 360 * rad;
+  let asc = Math.atan2(Math.cos(lst), -(Math.sin(lst) * Math.cos(eps) + Math.tan(phi) * Math.sin(eps))) / rad;
+  asc = ((asc % 360) + 360) % 360;
+  return SIGNS[Math.floor(asc / 30)];
+}
+const ELEMENT = (z) => [0, 1, 2, 3][SIGNS.indexOf(z) % 4]; // 0 oheň, 1 země, 2 vzduch, 3 voda
+function signMatch(a, b) {
+  if (!a || !b) return null;
+  if (a === b) return 85;
+  const x = ELEMENT(a), y = ELEMENT(b);
+  if (x === y) return 92;
+  if ((x === 0 && y === 2) || (x === 2 && y === 0) || (x === 1 && y === 3) || (x === 3 && y === 1)) return 80;
+  return 55;
+}
+
+// Souznění – srdíčko s procenty: záliby (s mírou), odpočinek, co kdo hledá, povaha a pro zábavu hvězdy
+const GOAL_FIT = { vztah: { vztah: 100, nevim: 60, pratelstvi: 35, spolecnik: 35, neco_volneho: 5 }, nevim: { nevim: 85, vztah: 60, pratelstvi: 60, spolecnik: 60, neco_volneho: 45 },
+  pratelstvi: { pratelstvi: 100, spolecnik: 90, nevim: 60, vztah: 35, neco_volneho: 40 }, spolecnik: { spolecnik: 100, pratelstvi: 90, nevim: 60, vztah: 35, neco_volneho: 40 },
+  neco_volneho: { neco_volneho: 90, nevim: 45, pratelstvi: 40, spolecnik: 40, vztah: 5 } };
+function souzneni(me, p, x = {}) {
+  if (!me || !p) return null;
+  const A = new Set(me.interests || []), B = new Set(p.interests || []);
+  const AL = new Set(me.interest_love || []), BL = new Set(x.interest_love || p.interest_love || []);
+  const shared = [...A].filter((i) => B.has(i));
+  const parts = [];
+  if (A.size && B.size) {
+    const w = shared.reduce((s, i) => s + (AL.has(i) && BL.has(i) ? 2 : AL.has(i) || BL.has(i) ? 1.4 : 1), 0);
+    const ca = new Set([...A].map((i) => CAT_OF[i]).filter((c) => c != null)), cb = new Set([...B].map((i) => CAT_OF[i]).filter((c) => c != null));
+    const cat = [...ca].filter((c) => cb.has(c)).length / Math.max(1, new Set([...ca, ...cb]).size);
+    parts.push(['Záliby', Math.round(100 * Math.min(1, 0.72 * Math.min(1, w / (0.55 * Math.min(A.size, B.size))) + 0.35 * cat)), 35]);
+  }
+  const RA = me.relax || [], RB = x.relax || p.relax || [];
+  if (RA.length && RB.length) { const sr = RA.filter((r) => RB.includes(r)).length; parts.push(['Odpočinek', Math.round(100 * Math.min(1, 0.25 + sr / Math.min(RA.length, RB.length))), 15]); }
+  if (me.goal && p.goal && GOAL_FIT[me.goal]) parts.push(['Jak to myslíte', GOAL_FIT[me.goal][p.goal] ?? 50, 25]);
+  if (p.compat != null) parts.push(['Povaha', p.compat, 15]);
+  const zA = zodiacOf(me.birthdate), zB = p.zodiac;
+  let astro = signMatch(zA, zB);
+  const asB = x.ascendant || p.ascendant;
+  if (astro != null && me.ascendant && asB) astro = Math.round(0.65 * astro + 0.35 * signMatch(me.ascendant, asB));
+  if (astro != null) parts.push(['Hvězdy ✨', astro, 10]);
+  if (!parts.length) return null;
+  let pct = Math.round(parts.reduce((s, [, v, w]) => s + v * w, 0) / parts.reduce((s, [, , w]) => s + w, 0));
+  if ((me.goal === 'vztah' && p.goal === 'neco_volneho') || (me.goal === 'neco_volneho' && p.goal === 'vztah')) pct = Math.min(pct, 35);
+  return { pct: Math.max(1, Math.min(99, pct)), parts, shared, onlyMe: [...A].filter((i) => !B.has(i)), onlyThem: [...B].filter((i) => !A.has(i)), AL, BL, astro, zA, zB, asA: me.ascendant, asB };
+}
+function souzneniHTML(p, r) {
+  if (!r) return `<p class="small muted">Vyplň si záliby a co hledáš a uvidíš, jak moc si sedíte.</p>`;
+  const nm = esc(p.name);
+  const love = (i) => (r.AL.has(i) && r.BL.has(i) ? ' ❤️' : '');
+  return `<div class="souz-top"><div class="souz-heart" style="--p:${r.pct}"><svg viewBox="0 0 32 30" aria-hidden="true"><defs><linearGradient id="hg" x1="0" x2="0" y1="1" y2="0">
+      <stop offset="${r.pct}%" stop-color="var(--accent)"/><stop offset="${r.pct}%" stop-color="rgba(255,255,255,.12)"/></linearGradient></defs>
+      <path fill="url(#hg)" d="M16 29S1 19.6 1 9.6C1 4.8 4.7 1 9.2 1c2.8 0 5.3 1.5 6.8 3.8C17.5 2.5 20 1 22.8 1 27.3 1 31 4.8 31 9.6 31 19.6 16 29 16 29z"/></svg>
+      <b>${r.pct} %</b></div>
+    <div><b style="font-size:17px">${r.pct >= 80 ? 'Silné souznění' : r.pct >= 60 ? 'Dobré souznění' : r.pct >= 40 ? 'Něco vás spojuje' : 'Spíš každý jinak'}</b>
+      <div class="small muted">Ty a ${nm}</div></div></div>
+    <svg class="venn" viewBox="0 0 300 150" role="img" aria-label="Společné ${r.shared.length}, jen ty ${r.onlyMe.length}, jen ${nm} ${r.onlyThem.length}">
+      <circle cx="110" cy="75" r="68" fill="rgba(94,234,212,.18)" stroke="var(--accent)" stroke-width="1.5"/>
+      <circle cx="190" cy="75" r="68" fill="rgba(47,91,234,.22)" stroke="var(--primary-2, #6B8BFF)" stroke-width="1.5"/>
+      <text x="72" y="70" text-anchor="middle" class="vn">${r.onlyMe.length}</text><text x="72" y="92" text-anchor="middle" class="vl">jen ty</text>
+      <text x="150" y="70" text-anchor="middle" class="vn">${r.shared.length}</text><text x="150" y="92" text-anchor="middle" class="vl">společné</text>
+      <text x="228" y="70" text-anchor="middle" class="vn">${r.onlyThem.length}</text><text x="228" y="92" text-anchor="middle" class="vl">jen ${nm.slice(0, 10)}</text></svg>
+    ${r.shared.length ? `<div class="chips" style="justify-content:center">${r.shared.map((i) => `<span class="chip same">${esc(i)}${love(i)}</span>`).join('')}</div>` : ''}
+    <div class="souz-bars">${r.parts.map(([l, v]) => `<div><span>${l}</span><i><em style="width:${v}%"></em></i><b>${v} %</b></div>`).join('')}</div>
+    ${r.astro != null ? `<p class="small muted" style="margin-top:8px">${SIGN_EMOJI[r.zA] || ''} ${esc(r.zA)}${r.asA ? ` (asc. ${esc(r.asA)})` : ''} + ${SIGN_EMOJI[r.zB] || ''} ${esc(r.zB)}${r.asB ? ` (asc. ${esc(r.asB)})` : ''} · hvězdy berte s nadsázkou 😉</p>` : ''}`;
+}
+
+// Hlídání nahých fotek přímo v telefonu (model NSFW na MobileNetV2, hostovaný u nás)
+let NSFW_P = null;
+const loadScript = (src) => new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+function nsfwModel() {
+  if (!NSFW_P) NSFW_P = (async () => {
+    if (!window.tf) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+    return window.tf.loadLayersModel('./models/nsfw/model.json');
+  })().catch((e) => { NSFW_P = null; throw e; });
+  return NSFW_P;
+}
+async function nsfwScore(blob) {
+  const m = await nsfwModel(); const tf = window.tf;
+  const bmp = await createImageBitmap(blob);
+  const out = tf.tidy(() => m.predict(tf.image.resizeBilinear(tf.browser.fromPixels(bmp).toFloat().div(255), [224, 224], true).reshape([1, 224, 224, 3])));
+  const d = await out.data(); out.dispose();
+  return { hentai: d[1], porn: d[3], sexy: d[4] };
+}
+// Plavky a spodní prádlo projdou, nahota ne. 1. jasný pokus = varování, 2. = trvalý zákaz (admin může zrušit při omylu).
+async function photoAllowed(blob, kind) {
+  let sc;
+  try { sc = await nsfwScore(blob); } catch { return true; }
+  const nude = sc.porn + sc.hentai;
+  if (nude >= 0.85) {
+    const { data } = await sb.rpc('nsfw_strike', { kind, score: nude });
+    if (data === 'banned') { S.me && (S.me.banned = true); await dialog({ title: 'Účet je trvale zablokovaný', text: 'Opakovaně ses pokusil(a) nahrát nahou fotku. To je v Plamínku zakázané, proto je účet trvale zablokovaný. Pokud jde o omyl, napiš na ' + C.SUPPORT_EMAIL + '.', ok: 'Rozumím', cancel: '' }); route(); return false; }
+    await dialog({ title: 'Tuhle fotku nahrát nejde 🚫', text: 'Vypadá jako nahá nebo sexuální fotka. Ty v Plamínku nejsou povolené – ani v profilu, ani v chatu. Plavky nebo spodní prádlo jsou v pořádku. Pozor: při dalším pokusu se účet trvale zablokuje.', ok: 'Rozumím', cancel: '' });
+    return false;
+  }
+  if (nude >= 0.6) { await dialog({ title: 'Fotka je moc odhalená', text: 'Plavky a spodní prádlo jsou v pořádku, nahota ne. Zkus prosím jinou fotku.', ok: 'Dobře', cancel: '' }); return false; }
+  return true;
 }
 
 function toast(msg, ms = 2600) {
@@ -128,7 +253,9 @@ function errText(e) {
   if (m.includes('nothing_to_reveal')) return 'Žádný další lajk k odhalení.';
   if (m.includes('nothing_to_rewind')) return 'Není co vrátit.';
   if (m.includes('premium_required')) return 'Tahle funkce je v předplatném Gold.';
+  if (m.includes('nsfw_blocked')) return 'Fotka nebyla nahrána.';
   if (m.includes('banned')) return 'Tvůj účet je zablokovaný.';
+  if (m.includes('too_many_interests')) return 'Moc zálib – maximálně 20 (z toho 8 ❤️).';
   if (m.includes('too_many_photos')) return 'Maximálně 6 fotek.';
   if (m.includes('Failed to fetch') || m.includes('NetworkError')) return 'Nejde se připojit. Zkontroluj internet.';
   try { console.warn('errText', m); } catch (e) { /* nic */ }
@@ -147,6 +274,7 @@ async function resizeImage(file, max = 1280) {
 
 async function uploadPhoto(file, folder = '') {
   const blob = await resizeImage(file);
+  if (!(await photoAllowed(blob, folder.startsWith('chat') ? 'chat' : 'profile'))) throw new Error('nsfw_blocked');
   const path = `${uid()}/${folder}${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
   const { error } = await sb.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (error) throw error;
@@ -239,14 +367,17 @@ const I = {
 };
 
 // Detaily profilu (hodnoty odpovídají kontrolám v databázi)
-const GOALS = { vztah: 'Vážný vztah', neco_volneho: 'Něco volnějšího', pratelstvi: 'Přátelství', nevim: 'Ještě nevím' };
+const GOALS = { vztah: '❤️ Vážný vztah', nevim: '🌱 Uvidíme, co čas přinese', pratelstvi: '🤝 Jen kamarádství', spolecnik: '🚶 Společník na aktivity', neco_volneho: '🌙 Nechci se vázat' };
+const GOAL_HINT = { vztah: 'Hledám partnera/partnerku na dlouho.', nevim: 'Jsem otevřený/á, ale myslím to upřímně.', pratelstvi: 'Hledám kamaráda, ne vztah.',
+  spolecnik: 'Hledám parťáka na výlety, kulturu nebo sport.', neco_volneho: 'Teď se nechci citově vázat.' };
+const goalChip = (g) => (g && GOALS[g] ? `<span class="badge-chip goal-${g}">${GOALS[g]}</span>` : '');
 const EDU = { zakladni: 'Základní', stredni: 'Střední', vysoka: 'Vysoká škola', student: 'Studuji' };
 const SMOKE = { ne: 'Nekouřím', obcas: 'Příležitostně', ano: 'Kouřím' };
 const DRINK = { ne: 'Nepiju', obcas: 'Příležitostně', ano: 'Rád(a) si dám' };
 const KIDS = { nemam_chci: 'Nemám, ale chci', nemam_nechci: 'Nemám a nechci', mam: 'Mám děti', nevim: 'Ještě nevím' };
 const RELIGION = { zadne: 'Bez vyznání', krestanstvi: 'Křesťanství', jine: 'Jiné', nechci_rict: 'Nechci říct' };
 const DETAILS = [
-  ['goal', 'Co hledám', GOALS, 'target'], ['education', 'Vzdělání', EDU, 'cap'], ['smoking', 'Kouření', SMOKE, 'smoke'],
+  ['education', 'Vzdělání', EDU, 'cap'], ['smoking', 'Kouření', SMOKE, 'smoke'],
   ['drinking', 'Alkohol', DRINK, 'glass'], ['kids', 'Děti', KIDS, 'baby'], ['religion', 'Víra', RELIGION, 'pray'],
 ];
 
@@ -824,13 +955,57 @@ function bindSeg(id, onChange) {
     onChange(b.dataset.v);
   }));
 }
-const chipsHTML = (chosen) => `<div class="chips" id="ints">${INTERESTS.map((i) => `<button type="button" class="chip" data-v="${esc(i)}" aria-pressed="${chosen.has(i)}">${esc(i)}</button>`).join('')}</div>`;
-function bindChips(chosen) {
+// Záliby po kategoriích: 1. klepnutí = baví mě, 2. = ❤️ miluju, 3. = zrušit
+function chipsHTML(chosen, love = new Set()) {
+  const extra = [...chosen].filter((i) => !INTERESTS.includes(i));
+  const cats = extra.length ? [...INTEREST_CATS, ['⭐', 'Dříve vybrané', extra]] : INTEREST_CATS;
+  return `<p class="small muted" style="margin:-2px 0 8px">Klepni jednou = <b>baví mě</b>, podruhé = <b>❤️ miluju</b>. Max. ${MAX_INT} zálib, z toho ${MAX_LOVE} ❤️.</p>
+  <div id="ints" class="int-cats">${cats.map(([e, name, list], ci) => {
+    const n = list.filter((i) => chosen.has(i)).length;
+    return `<details class="int-cat" ${ci === 0 || n ? 'open' : ''}><summary>${e} ${esc(name)} <span class="cnt" data-cnt="${ci}">${n || ''}</span></summary>
+      <div class="chips">${list.map((i) => `<button type="button" class="chip ${love.has(i) ? 'love' : ''}" data-v="${esc(i)}" aria-pressed="${chosen.has(i)}">${love.has(i) ? '❤️ ' : ''}${esc(i)}</button>`).join('')}</div></details>`;
+  }).join('')}</div>`;
+}
+function bindChips(chosen, love = new Set()) {
   $$('#ints button').forEach((b) => (b.onclick = () => {
     const v = b.dataset.v;
-    if (chosen.has(v)) chosen.delete(v); else { if (chosen.size >= 8) return toast('Maximálně 8 zájmů.'); chosen.add(v); }
-    b.setAttribute('aria-pressed', chosen.has(v));
+    if (!chosen.has(v)) { if (chosen.size >= MAX_INT) return toast(`Maximálně ${MAX_INT} zálib.`); chosen.add(v); }
+    else if (!love.has(v)) { if (love.size >= MAX_LOVE) { chosen.delete(v); toast(`❤️ můžeš dát nejvýš ${MAX_LOVE} zálibám.`); } else love.add(v); }
+    else { love.delete(v); chosen.delete(v); }
+    b.setAttribute('aria-pressed', chosen.has(v)); b.classList.toggle('love', love.has(v));
+    b.textContent = (love.has(v) ? '❤️ ' : '') + v;
+    const det = b.closest('details'); const c = $('.cnt', det); const n = $$('button[aria-pressed=true]', det).length; c.textContent = n || '';
   }));
+}
+const relaxHTML = (sel) => `<div class="chips" id="relax">${Object.entries(RELAX).map(([k, v]) => `<button type="button" class="chip" data-v="${k}" aria-pressed="${sel.has(k)}">${v}</button>`).join('')}</div>`;
+function bindRelax(sel) {
+  $$('#relax button').forEach((b) => (b.onclick = () => {
+    const v = b.dataset.v;
+    if (sel.has(v)) sel.delete(v); else { if (sel.size >= 4) return toast('Vyber nejvýš 4.'); sel.add(v); }
+    b.setAttribute('aria-pressed', sel.has(v));
+  }));
+}
+const goalPickHTML = (val) => `<div class="goal-pick" id="goalPick">${Object.entries(GOALS).map(([k, v]) => `<button type="button" class="goal-opt goal-${k}" data-v="${k}" aria-pressed="${k === val}"><b>${v}</b><span>${GOAL_HINT[k]}</span></button>`).join('')}</div>`;
+function bindGoalPick(obj) {
+  $$('#goalPick button').forEach((b) => (b.onclick = () => { obj.goal = b.dataset.v; $$('#goalPick button').forEach((x) => x.setAttribute('aria-pressed', x === b)); const s = $(`#d-goal button[data-v="${obj.goal}"]`); if (s) $$('#d-goal button').forEach((x) => x.setAttribute('aria-pressed', x === s)); }));
+}
+// Hvězdy – znamení z data narození, ascendent volitelně z času a místa (čas neukládáme, jen výsledné znamení)
+function astroHTML(o) {
+  const z = zodiacOf(o.birthdate);
+  return `<div class="astro-box"><div class="small" style="margin-bottom:8px">${z ? `${SIGN_EMOJI[z]} Znamení: <b>${esc(z)}</b>` : 'Znamení se spočítá z data narození.'}
+    · Ascendent: <b id="ascV">${o.ascendant ? esc(o.ascendant) : 'neuveden'}</b></div>
+    <div class="row"><div class="field"><label for="a-time">Čas narození</label><input class="input" type="time" id="a-time"></div>
+      <div class="field"><label for="a-place">Místo narození</label><select class="input" id="a-place"><option value="">Vyber…</option>${Object.keys(BIRTH_PLACES).map((k) => `<option>${esc(k)}</option>`).join('')}</select></div></div>
+    <div class="row" style="gap:8px"><button type="button" class="btn btn-outline btn-sm" id="a-calc">✨ Spočítat ascendent</button><button type="button" class="link-btn" id="a-none" style="font-size:13px">Čas narození neznám</button></div>
+    <p class="small muted" style="margin-top:6px">Pro zábavu 😉 Čas ani místo neukládáme – jen výsledné znamení.</p></div>`;
+}
+function bindAstro(o) {
+  $('#a-calc').onclick = () => {
+    const a = ascendantOf(o.birthdate || (S.me && S.me.birthdate), $('#a-time').value, $('#a-place').value);
+    if (!a) return toast('Vyplň čas i místo narození.');
+    o.ascendant = a; $('#ascV').textContent = a; toast(`Tvůj ascendent: ${SIGN_EMOJI[a]} ${a}`);
+  };
+  $('#a-none').onclick = () => { o.ascendant = null; $('#ascV').textContent = 'neuveden'; toast('Nevadí – souznění spočítáme podle znamení.'); };
 }
 
 // Detaily profilu (výška, cíl, vzdělání…) – výběr z možností, dalším klepnutím zrušíš
@@ -855,7 +1030,7 @@ const pickDetails = (v) => ({ height_cm: v.height_cm || null, goal: v.goal || nu
 // Průvodce registrací (6 kroků)
 // ---------------------------------------------------------------------
 const W = { step: 0, name: '', birthdate: '', gender: 'muz', looking_for: 'zeny', mode: 'laska', min_age: 18, max_age: 45,
-  photos: [], bio: '', city: '', job: '', interests: new Set(), prompts: [], personality: null, lat: null, lng: null, consent: false,
+  photos: [], bio: '', city: '', job: '', interests: new Set(), love: new Set(), relax: new Set(), ascendant: null, prompts: [], personality: null, lat: null, lng: null, consent: false,
   height_cm: null, goal: null, education: null, smoking: null, drinking: null, kids: null, religion: null };
 
 function renderWizard() {
@@ -878,6 +1053,7 @@ function renderWizard() {
       ${Object.entries({ laska: ['Lásku', 'Rande a vztah'], pratele: ['Přátele', 'Nové kamarády'], oboje: ['Obojí', 'Uvidím, co přijde'] })
         .map(([k, [t, s]]) => `<button type="button" class="mode-card" data-v="${k}" aria-pressed="${W.mode === k}"><b>${t}</b><span>${s}</span></button>`).join('')}
     </div>
+    <div class="field" style="margin-top:16px"><span class="lbl">Jak to myslíš? <span class="small muted">(uvidí to ostatní)</span></span>${goalPickHTML(W.goal)}</div>
     <div class="field" style="margin-top:16px"><span class="lbl">Jsem</span>${segHTML('w-gender', { muz: 'Muž', zena: 'Žena', jine: 'Jiné' }, W.gender)}</div>
     <div class="field" id="w-lookwrap" ${W.mode === 'pratele' ? 'hidden' : ''}><span class="lbl">Na rande hledám</span>${segHTML('w-look', { muze: 'Muže', zeny: 'Ženy', vsechny: 'Všechny' }, W.looking_for)}</div>
     <div class="row"><div class="field"><label for="w-min">Věk od</label><input class="input" id="w-min" type="number" min="18" max="99" value="${W.min_age}"></div>
@@ -892,7 +1068,9 @@ function renderWizard() {
     <div class="field"><label for="w-bio">O mně</label><textarea class="input" id="w-bio" maxlength="500" placeholder="Co tě baví, co hledáš…">${esc(W.bio)}</textarea></div>
     <div class="row"><div class="field"><label for="w-city">Město</label><input class="input" id="w-city" maxlength="60" value="${esc(W.city)}" placeholder="Praha"></div>
       <div class="field"><label for="w-job">Práce / škola</label><input class="input" id="w-job" maxlength="60" value="${esc(W.job)}"></div></div>
-    <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(W.interests)}</div>
+    <div class="field"><span class="lbl">Co tě baví</span>${chipsHTML(W.interests, W.love)}</div>
+    <div class="field"><span class="lbl">Jak nejradši odpočíváš (max. 4)</span>${relaxHTML(W.relax)}</div>
+    <p class="label-caps" style="margin-top:18px">Hvězdy (nepovinné)</p>${astroHTML(W)}
     <p class="label-caps" style="margin-top:18px">Detaily (nepovinné)</p><div id="w-details">${detailsEditorHTML(W)}</div>`;
   if (n === 4) body = `
     <p class="script">prolom ledy</p><h1 class="wiz-h">Tvoje osobnost</h1>
@@ -937,11 +1115,12 @@ function renderWizard() {
       $$('#w-mode .mode-card').forEach((x) => x.setAttribute('aria-pressed', x === b));
       $('#w-lookwrap').hidden = W.mode === 'pratele';
     }));
+    bindGoalPick(W);
     bindSeg('w-gender', (v) => (W.gender = v));
     bindSeg('w-look', (v) => (W.looking_for = v));
   }
   if (n === 2) { const rr = () => { $('#w-photos').innerHTML = photoGridHTML(W.photos); bindPhotoGrid($('#w-photos'), W.photos, rr); }; bindPhotoGrid($('#w-photos'), W.photos, rr); }
-  if (n === 3) { bindChips(W.interests); bindDetails($('#w-details'), W); }
+  if (n === 3) { bindChips(W.interests, W.love); bindRelax(W.relax); bindAstro(W); bindDetails($('#w-details'), W); }
   if (n === 4) {
     const rr = () => { $('#w-prompts').innerHTML = promptsEditorHTML(W.prompts); bindPrompts($('#w-prompts'), W.prompts, rr); };
     bindPrompts($('#w-prompts'), W.prompts, rr);
@@ -962,6 +1141,7 @@ function renderWizard() {
       if (!W.birthdate) return toast('Vyplň datum narození.');
       if (ageOf(W.birthdate) < 18) return toast('Plamínek je jen pro lidi starší 18 let.');
     }
+    if (n === 1 && !W.goal) return toast('Vyber prosím, jak to myslíš – ať ostatní vědí, na čem jsou.');
     if (n === 2 && !W.photos.length) return toast('Přidej aspoň jednu fotku.');
     if (n < 5) { W.step++; return renderWizard(); }
     if (!W.consent) return toast('Pro dokončení potvrď souhlas.');
@@ -969,7 +1149,7 @@ function renderWizard() {
     try {
       const row = { id: uid(), name: W.name, birthdate: W.birthdate, gender: W.gender, looking_for: W.mode === 'pratele' ? 'vsechny' : W.looking_for,
         mode: W.mode, min_age: W.min_age, max_age: W.max_age, photos: W.photos, photo_url: W.photos[0] || null, bio: W.bio, city: W.city, job: W.job,
-        interests: [...W.interests], prompts: W.prompts.filter((p) => p.a && p.a.trim()).map((p) => ({ q: p.q, a: p.a.trim().slice(0, 150) })),
+        interests: [...W.interests], interest_love: [...W.love].filter((i) => W.interests.has(i)), relax: [...W.relax], ascendant: W.ascendant || null, prompts: W.prompts.filter((p) => p.a && p.a.trim()).map((p) => ({ q: p.q, a: p.a.trim().slice(0, 150) })),
         personality: W.personality, lat: W.lat, lng: W.lng, ...pickDetails(W) };
       const { error } = await sb.from('profiles').insert(row);
       if (error) throw error;
@@ -987,7 +1167,7 @@ function renderWizard() {
 function renderEdit() {
   const p = S.me;
   const E = { photos: [...(p.photos && p.photos.length ? p.photos : p.photo_url ? [p.photo_url] : [])], prompts: (p.prompts || []).map((x) => ({ ...x })),
-    personality: p.personality, interests: new Set(p.interests || []), gender: p.gender, looking_for: p.looking_for, mode: p.mode || 'laska', ...pickDetails(p) };
+    personality: p.personality, interests: new Set(p.interests || []), love: new Set(p.interest_love || []), relax: new Set(p.relax || []), ascendant: p.ascendant || null, birthdate: p.birthdate, gender: p.gender, looking_for: p.looking_for, mode: p.mode || 'laska', ...pickDetails(p) };
   app.innerHTML = `${waves()}<div class="screen">
     <div class="topbar"><a class="icon-btn" href="#/profile" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">Upravit profil</h1><span style="width:44px"></span></div>
     <form id="ef" class="scroll pad" style="padding-top:6px" novalidate>
@@ -1000,7 +1180,10 @@ function renderEdit() {
         <div class="field"><label for="e-ig">Instagram ${S.plan ? '<span class="small muted">(nepovinné, uvidí ho jen lidé s předplatným)</span>' : '<span class="small muted">🔒 jen s předplatným</span>'}</label>
           ${S.plan ? `<input class="input" id="e-ig" maxlength="31" autocapitalize="off" autocomplete="off" placeholder="tvoje_prezdivka" value="${esc(p.instagram || '')}">`
           : '<a class="ig-chip locked" href="#/premium" style="margin-top:4px">🔒 Odemknout Instagram v profilu</a>'}</div>
-      <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(E.interests)}</div>
+      <p class="label-caps" style="margin-top:20px">Jak to myslím</p>${goalPickHTML(E.goal)}
+      <p class="label-caps" style="margin-top:20px">Co mě baví</p>${chipsHTML(E.interests, E.love)}
+      <div class="field" style="margin-top:12px"><span class="lbl">Jak nejradši odpočívám (max. 4)</span>${relaxHTML(E.relax)}</div>
+      <p class="label-caps" style="margin-top:20px">Hvězdy</p>${astroHTML(E)}
       <p class="label-caps" style="margin-top:20px">Detaily</p><div id="e-details">${detailsEditorHTML(E)}</div>
       <p class="label-caps" style="margin-top:20px">Otázky v profilu</p><div id="e-prompts">${promptsEditorHTML(E.prompts)}</div>
       <p class="label-caps" style="margin-top:24px">Typ osobnosti</p><div id="e-pers">${personalityPickerHTML(E.personality)}</div>
@@ -1020,7 +1203,7 @@ function renderEdit() {
   const rrP = () => { $('#e-photos').innerHTML = photoGridHTML(E.photos); bindPhotoGrid($('#e-photos'), E.photos, rrP); }; rrP();
   const rrQ = () => { $('#e-prompts').innerHTML = promptsEditorHTML(E.prompts); bindPrompts($('#e-prompts'), E.prompts, rrQ); }; rrQ();
   bindPersonality($('#e-pers'), () => E.personality, (t) => (E.personality = t));
-  bindChips(E.interests);
+  bindChips(E.interests, E.love); bindRelax(E.relax); bindAstro(E); bindGoalPick(E);
   bindDetails($('#e-details'), E);
   bindSeg('e-mode', (v) => { E.mode = v; $('#e-lookwrap').hidden = v === 'pratele'; });
   bindSeg('e-gender', (v) => (E.gender = v));
@@ -1038,7 +1221,7 @@ function renderEdit() {
     const ig = !$('#e-ig') ? (S.me.instagram || '') : $('#e-ig').value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
     if (ig && !/^[A-Za-z0-9._]{1,30}$/.test(ig)) return toast('Instagram: napiš jen přezdívku (písmena, čísla, tečka, podtržítko).');
     const row = { ...($('#e-ig') ? { instagram: ig || null } : {}), name, bio: $('#e-bio').value.trim(), city: $('#e-city').value.trim(), job: $('#e-job').value.trim(),
-      interests: [...E.interests], photos: E.photos, photo_url: E.photos[0], personality: E.personality, mode: E.mode, gender: E.gender,
+      interests: [...E.interests], interest_love: [...E.love].filter((i) => E.interests.has(i)), relax: [...E.relax], ascendant: E.ascendant || null, photos: E.photos, photo_url: E.photos[0], personality: E.personality, mode: E.mode, gender: E.gender,
       looking_for: E.mode === 'pratele' ? 'vsechny' : E.looking_for, min_age: minAge, max_age: maxAge, max_distance_km: +$('#e-dist').value,
       prompts: E.prompts.filter((x) => x.a && x.a.trim()).map((x) => ({ q: x.q, a: x.a.trim().slice(0, 150) })), ...pickDetails(E) };
     const { error } = await sb.from('profiles').update(row).eq('id', uid());
@@ -1057,8 +1240,9 @@ function compatLabel(c) { return c >= 85 ? 'Skvělá shoda' : c >= 70 ? 'Dobrá 
 function badgesHTML(p) {
   const b = [];
   if (p.distance_km != null) b.push(`<span class="badge-chip">${I.pin({ size: 13, color: 'var(--accent)' })}${p.distance_km} km</span>`);
-  if (p.compat != null) b.push(`<span class="badge-chip hot">💜 ${p.compat} %</span>`);
-  if (p.goal && GOALS[p.goal]) b.push(`<span class="badge-chip">${I.target({ size: 12, color: 'var(--accent)' })}${GOALS[p.goal]}</span>`);
+  if (p.goal) b.unshift(goalChip(p.goal));
+  const sz = S.me && p.id && p.id !== S.me.id ? souzneni(S.me, p) : null;
+  if (sz) b.push(`<span class="badge-chip hot" title="Souznění">💞 ${sz.pct} %</span>`);
   if (p.personality) b.push(`<span class="badge-chip">${esc(p.personality)}</span>`);
   if (p.height_cm) b.push(`<span class="badge-chip">${p.height_cm} cm</span>`);
   if (p.zodiac) b.push(`<span class="badge-chip">${I.moon({ size: 12, color: 'var(--accent)' })}${esc(p.zodiac)}</span>`);
@@ -1100,7 +1284,9 @@ function detailHTML(p, actions) {
   if (p.bio) blocks.push(`<div class="d-sec"><p class="label-caps">O mně</p><p class="lead" style="font-size:15px;white-space:pre-wrap">${esc(p.bio)}</p></div>`);
   if (prompts[1]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[1].q)}</div><div class="pa">${esc(prompts[1].a)}</div></div>`);
   if (photos[2]) blocks.push(`<div class="d-photo" style="${bgImg(photos[2])}"></div>`);
-  if ((p.interests || []).length) blocks.push(`<div class="d-sec"><p class="label-caps">Zájmy</p><div class="chips">${p.interests.map((i) => `<span class="chip ${S.me && (S.me.interests || []).includes(i) ? 'same' : ''}">${esc(i)}</span>`).join('')}</div></div>`);
+  if (S.me && p.id && p.id !== S.me.id) blocks.push(`<div class="d-sec souz"><p class="label-caps">💞 Souznění</p><div data-souz>${souzneniHTML(p, souzneni(S.me, p))}</div></div>`);
+  if (p.goal && GOAL_HINT[p.goal]) blocks.push(`<div class="d-sec goal-box goal-${p.goal}"><b>${GOALS[p.goal]}</b><span>${GOAL_HINT[p.goal]}</span></div>`);
+  if ((p.interests || []).length) blocks.push(`<div class="d-sec"><p class="label-caps">Záliby</p><div class="chips" data-ints>${p.interests.map((i) => `<span class="chip ${S.me && (S.me.interests || []).includes(i) ? 'same' : ''}">${esc(i)}</span>`).join('')}</div><div data-relax></div></div>`);
   if (p.personality) blocks.push(`<div class="d-sec pers-card"><div>${I.brain({ size: 28, color: 'var(--accent)' })}</div><div><b>${esc(p.personality)} · ${esc(TYPES[p.personality] || '')}</b>
     <span>${p.compat != null ? `${compatLabel(p.compat)} s tebou: ${p.compat} %` : 'Doplň si svůj typ a uvidíš, jak moc si sedíte.'}</span></div></div>`);
   if (prompts[2]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[2].q)}</div><div class="pa">${esc(prompts[2].a)}</div></div>`);
@@ -1141,6 +1327,13 @@ function openDetail(p, actions = [], onAction = null) {
   const blk = $('[data-block]', el);
   if (blk) blk.onclick = async () => { close(); if (await blockUser(p.id, p.name) && onAction) onAction('removed'); };
   if (S.me && p.id !== S.me.id) sb.rpc('record_view', { pid: p.id }).then(() => {});
+  if (S.me && p.id && p.id !== S.me.id) sb.rpc('souzneni_data', { pid: p.id }).then(({ data }) => {
+    const x = data && data[0]; if (!x) return;
+    const box = $('[data-souz]', el); if (box) box.innerHTML = souzneniHTML(p, souzneni(S.me, p, x));
+    const ints = $('[data-ints]', el); const love = new Set(x.interest_love || []);
+    if (ints) $$('.chip', ints).forEach((c) => { if (love.has(c.textContent)) c.textContent = '❤️ ' + c.textContent; });
+    const rl = $('[data-relax]', el); if (rl && (x.relax || []).length) rl.innerHTML = `<p class="label-caps" style="margin-top:14px">Odpočinek</p><div class="chips">${x.relax.filter((r) => RELAX[r]).map((r) => `<span class="chip ${(S.me.relax || []).includes(r) ? 'same' : ''}">${RELAX[r]}</span>`).join('')}</div>`;
+  });
   return el;
 }
 
@@ -2170,7 +2363,7 @@ const FAQ = [
   { k: ['kontakt', 'instagram', 'insta', 'telefon', 'číslo', 'cislo', 'odkaz'], q: 'Proč nejde poslat Instagram nebo číslo?',
     a: 'Kontakty (Instagram, telefon, e-mail, odkazy) si můžete poslat, až si se shodou napíšete aspoň 10 zpráv. S předplatným Plus a vyšším je pošleš hned. V první zprávě bez shody je poslat nejde. Chráníme tím všechny před spamem, podvodníky a falešnými profily. S předplatným si můžeš Instagram dát i do profilu.', actions: [['go:#/premium', '👑 Zobrazit předplatné'], ['go:#/edit', '📸 Přidat Instagram do profilu']] },
   { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
-    a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Pokud jsi v ohrožení, volej 112.' },
+    a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Když se cítíš v ohrožení, obrať se na policii.' },
   { k: ['heslo', 'hesla', 'heslem', 'password'], q: 'Změna hesla',
     a: 'Heslo změníš v Profil → Nastavení → Změnit heslo. Pokud ho nevíš, na přihlašovací obrazovce klepni na „Zapomněl(a) jsi heslo?“ a pošleme ti odkaz.', ask: 'Chceš si teď změnit heslo?', actions: [['password', '🔑 Ano, změnit heslo'], ['no', 'Ne']] },
   { k: ['přihl', 'prihl', 'login', 'e-mail', 'email'], q: 'Problém s přihlášením',
@@ -2232,13 +2425,12 @@ async function renderSupport() {
       const dev = /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : 'Počítač';
       const app = window.matchMedia('(display-mode: standalone)').matches ? 'aplikace' : 'prohlížeč';
       const info = `[${dev}, ${app}, ${window.innerWidth}×${window.innerHeight}, ${(navigator.language || '')}, verze ${C.APP_VERSION || '1.0'}]`;
-      const msg = `🐞 CHYBA: ${t}\n${info}`.slice(0, 2000);
-      const { error } = await sb.rpc('support_send', { msg });
-      if (error) return toast(errText(error));
-      human({ body: msg, from_admin: false, created_at: new Date().toISOString() });
-      bot('Díky moc! 🙏 Chybu jsme zapsali a dostal ji náš tým. Ozveme se ti tady, jakmile ji opravíme.');
+      const msg = `🐞 ${t}\n\n${info}`.slice(0, 3000);
+      const { error } = await sb.rpc('report_bug', { msg });
+      if (error) return toast(String(error.message).includes('too_many') ? 'Dnes už jsi nahlásil(a) hodně chyb, díky! Zkus to zítra.' : errText(error));
+      bot('Díky moc! 🙏 Chyba odešla rovnou vývojáři e-mailem i s popisem tvého zařízení. Jakmile ji opravíme, bude to v další verzi.');
     };
-    $('#sTips [data-human]').onclick = () => { bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
+    $('#sTips [data-human]').onclick = () => { S.supHuman = true; bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
   };
 
   bot(`Ahoj! 👋 Jsem asistent Plamínku. Vyber si téma dole, nebo rovnou napiš, s čím potřebuješ pomoct. Když si nebudu vědět rady, předám tě člověku z našeho týmu.`);
@@ -2254,21 +2446,37 @@ async function renderSupport() {
     })
     .subscribe();
 
-  let acked = false;
+  // AI asistent: odpoví na dotazy k aplikaci, pozdravy a řeči mimo téma nepředává,
+  // skutečné problémy pošle týmu (celý text přijde e-mailem)
+  const escalate = async (text) => {
+    const { error } = await sb.rpc('support_send', { msg: text });
+    if (error) return toast(String(error.message).includes('too_many') ? 'Napsal(a) jsi toho hodně najednou, zkus to prosím za chvíli.' : errText(error));
+    bot('Předal(a) jsem to týmu Plamínku i s celým textem. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜');
+  };
   $('#sForm').onsubmit = async (e) => {
     e.preventDefault();
     const inp = $('#sIn'); const text = inp.value.trim();
     if (!text) return;
     inp.value = '';
-    const { error } = await sb.rpc('support_send', { msg: text });
-    if (error) { inp.value = text; return toast(String(error.message).includes('too_many') ? 'Napsal(a) jsi toho hodně najednou, zkus to prosím za chvíli.' : errText(error)); }
-    human({ body: text, from_admin: false, created_at: new Date().toISOString() });
-    const f = faqFind(text);
-    if (f && f.actions) setTimeout(() => botActions(f.actions, f.ask), 900);
-    setTimeout(() => {
-      if (f) bot(`Možná pomůže tohle: ${f.a}`);
-      if (!acked) { bot('Tvoji zprávu jsem předal(a) týmu Plamínku. Odpovíme ti sem obvykle do 24 hodin a dáme ti vědět upozorněním. 💜'); acked = true; }
-    }, 400);
+    bubble(esc(text), true);
+    if (S.supHuman) { S.supHuman = false; return escalate(text); }
+    const typing = bubble('<span class="dots"><i></i><i></i><i></i></span>', false, 'bot');
+    let r = null;
+    try { const { data, error } = await sb.functions.invoke('support-ai', { body: { text } }); if (!error) r = data; } catch { r = null; }
+    typing.remove();
+    if (!r || r.kind === 'error' || r.kind === 'needs_login') {
+      const f = faqFind(text);
+      if (f) { bot(f.a); if (f.actions) botActions(f.actions, f.ask); }
+      return escalate(text);
+    }
+    if (r.kind === 'greet' || r.kind === 'offtopic') return bot(r.answer);
+    if (r.kind === 'escalated') return bot('Tohle vypadá na problém, který musí vyřešit člověk – předal(a) jsem to týmu Plamínku i s celým textem. Odpovíme ti sem obvykle do 24 hodin. 💜');
+    bot(r.answer);
+    const f = FAQ.find((x) => x.q === r.q) || faqFind(text);
+    if (f && f.actions) botActions(f.actions, f.ask);
+    const el = bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>Pomohlo to?<div class="bot-acts"><button type="button" data-y>👍 Ano</button><button type="button" data-n>Ne, předat člověku</button></div>`, false, 'bot');
+    $('[data-y]', el).onclick = () => { el.remove(); bot('Super, rád(a) jsem pomohl(a)! 🙂'); };
+    $('[data-n]', el).onclick = () => { el.remove(); escalate(text); };
   };
 }
 
@@ -2756,12 +2964,15 @@ async function renderAdmin(tab, openId) {
           <div><b>${esc(u.name)}</b> <span class="tag">#${esc(u.user_id.slice(0, 8).toUpperCase())}</span><div class="small muted">${esc(u.email || '')}</div></div></div></div>
           <div class="messages" style="padding:8px 0;max-height:none">${data.map((m) => `<div class="msg ${m.from_admin ? 'me' : ''}">${esc(m.body)}<time>${timeLabel(m.created_at)}</time></div>`).join('')}</div>
           <div class="field"><label class="sr-only" for="aRep">Odpověď</label><textarea class="input" id="aRep" maxlength="2000" placeholder="Napiš odpověď…" style="height:100px"></textarea></div>
-          <div class="row">${u.email ? `<a class="btn btn-outline btn-sm" href="mailto:${esc(u.email)}">${I.mail({ size: 16 })} E-mailem</a>` : ''}<button class="btn btn-primary btn-sm" data-send>Odeslat odpověď</button></div></div>`;
+          <div class="row">${u.email ? `<a class="btn btn-outline btn-sm" href="mailto:${esc(u.email)}">${I.mail({ size: 16 })} E-mailem</a>` : ''}<button class="btn btn-primary btn-sm" data-send>Odeslat odpověď</button></div>
+          <label class="consent" for="aLearn" style="margin-top:8px"><input type="checkbox" id="aLearn" checked><span class="small">🧠 Naučit asistenta – příště podobný dotaz zodpoví sám</span></label></div>`;
       $('[data-backlist]', box).onclick = () => renderAdmin('support');
       $('[data-send]', box).onclick = async () => {
         const t = $('#aRep').value.trim(); if (!t) return;
         const { error: e } = await sb.rpc('admin_support_reply', { uid: u.user_id, msg: t });
         if (e) return toast(errText(e));
+        const lastQ = [...data].reverse().find((m) => !m.from_admin && !m.body.startsWith('🐞'));
+        if (lastQ && $('#aLearn') && $('#aLearn').checked) sb.functions.invoke('support-ai', { body: { learn: { q: lastQ.body, a: t } } }).then(() => {});
         toast('Odesláno ✓'); openThread(u);
       };
     };
