@@ -108,7 +108,7 @@ begin
   if url is not null and secret is not null then
     for a in select id from profiles where is_admin loop
       perform net.http_post(url := url, headers := hdr, body := jsonb_build_object('to', a,
-        'title', 'Podpora: ' || coalesce(sname, 'uživatel'), 'body', left(new.body, 120),
+        'title', case when new.body like '🐞%' then '🐞 Chyba od: ' else 'Podpora: ' end || coalesce(sname, 'uživatel'), 'body', left(new.body, 120),
         'url', './#/admin/support', 'tag', 'support-' || new.user_id));
     end loop;
   end if;
@@ -117,7 +117,7 @@ begin
     perform net.http_post(url := 'https://api.resend.com/emails',
       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || rkey),
       body := jsonb_build_object('from', 'Plamínek <onboarding@resend.dev>', 'to', jsonb_build_array(remail),
-        'subject', 'Plamínek – nová zpráva podpoře',
+        'subject', case when new.body like '🐞%' then 'Plamínek – 🐞 nahlášená chyba' else 'Plamínek – nová zpráva podpoře' end,
         'text', 'V aplikaci Plamínek čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
                 'Přečteš si ji a odpovíš v aplikaci: Profil → Administrace → Podpora.'));
   end if;

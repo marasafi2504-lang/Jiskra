@@ -2069,8 +2069,21 @@ async function renderSupport() {
   const bot = (text) => bubble(`<span class="bot-tag">${I.flame({ size: 12, color: 'var(--accent)' })} Asistent</span>${esc(text)}`, false, 'bot');
   const human = (m) => bubble(`${m.from_admin ? `<span class="bot-tag">${I.user({ size: 12, color: '#6EE7B7' })} Tým Plamínku</span>` : ''}${esc(m.body)}<time>${timeLabel(m.created_at)}</time>`, !m.from_admin, m.from_admin ? 'staff' : '');
   const chips = () => {
-    $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button>';
+    $('#sTips').innerHTML = FAQ.map((f, i) => `<button type="button" data-f="${i}">${esc(f.q)}</button>`).join('') + '<button type="button" data-human>Napsat člověku</button><button type="button" data-bug class="bug">🐞 Nahlásit chybu</button>';
     $$('#sTips [data-f]').forEach((b) => (b.onclick = () => { const f = FAQ[+b.dataset.f]; bubble(esc(f.q), true); setTimeout(() => { bot(f.a); bot('Pomohlo to? Když ne, napiš mi dole, co přesně se děje – předám to našemu týmu.'); }, 350); }));
+    $('#sTips [data-bug]').onclick = async () => {
+      const t = await dialog({ title: 'Nahlásit chybu', text: 'Popiš, co nefunguje a co jsi zrovna dělal(a). Informace o zařízení přidáme automaticky.', input: true, placeholder: 'Např. po klepnutí na Odeslat se fotka nenahraje…', ok: 'Odeslat' });
+      if (!t) return;
+      const ua = navigator.userAgent;
+      const dev = /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : 'Počítač';
+      const app = window.matchMedia('(display-mode: standalone)').matches ? 'aplikace' : 'prohlížeč';
+      const info = `[${dev}, ${app}, ${window.innerWidth}×${window.innerHeight}, ${(navigator.language || '')}, verze ${C.APP_VERSION || '1.0'}]`;
+      const msg = `🐞 CHYBA: ${t}\n${info}`.slice(0, 2000);
+      const { error } = await sb.rpc('support_send', { msg });
+      if (error) return toast(errText(error));
+      human({ body: msg, from_admin: false, created_at: new Date().toISOString() });
+      bot('Díky moc! 🙏 Chybu jsme zapsali a dostal ji náš tým. Ozveme se ti tady, jakmile ji opravíme.');
+    };
     $('#sTips [data-human]').onclick = () => { bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
   };
 
