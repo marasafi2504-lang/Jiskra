@@ -494,6 +494,13 @@ function subscribeGlobal() {
 // Router
 // ---------------------------------------------------------------------
 async function route() {
+  if (/[#&]error(_code)?=/.test(location.hash) && !location.hash.includes('login_error=')) {
+    const h = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
+    history.replaceState(null, '', location.pathname + '#/');
+    const code = h.get('error_code') || '';
+    setTimeout(() => toast(S.session ? 'Už jsi přihlášený/á 💜 Ten odkaz z e-mailu platí jen jednou.'
+      : code === 'otp_expired' ? 'Odkaz z e-mailu už vypršel nebo byl použitý. Zadej e-mail znovu a pošleme nový.' : 'Přihlášení se nepovedlo, zkus to prosím znovu.', 6000), 400);
+  }
   if (location.hash.includes('login_error=')) {
     const m = decodeURIComponent(location.hash.split('login_error=')[1] || '');
     history.replaceState(null, '', location.pathname + '#/');
