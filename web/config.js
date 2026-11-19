@@ -61,3 +61,5 @@ export const COIN_PACKS = [
 // Ceny za coiny – musí odpovídat funkci coin_price() v databázi
 export const COIN_COSTS = { boost: 500, super: 100, reveal: 150, rewind: 50, message: 100 };
 export const COIN_VERIFY_BONUS = 500;
+
+export const APP_VERSION = '1.0';

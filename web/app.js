@@ -509,6 +509,7 @@ async function route() {
     case 'filters': return renderFilters();
     case 'support': return renderSupport();
     case 'settings': return renderSettings();
+    case 'about': return renderAbout();
     case 'coins': return renderCoins();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats') : go('#/profile');
     default: return renderDiscover();
@@ -2446,6 +2447,35 @@ function setTheme(id) {
   const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t.bg;
 }
 
+function renderAbout() {
+  const row = (href, emoji, label, sub = '', ext = true) => `<a class="settings-row" href="${href}" ${ext ? 'target="_blank" rel="noopener"' : ''}>
+    <span style="display:flex;gap:12px;align-items:center;flex:1;text-align:left"><span style="font-size:20px;width:24px;text-align:center;flex:none">${emoji}</span><span style="flex:1">${label}${sub ? `<small>${sub}</small>` : ''}</span></span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>`;
+  app.innerHTML = `${waves()}<div class="screen">
+    <div class="topbar"><a class="icon-btn" href="#/settings" aria-label="Zpět">${I.back({ size: 22 })}</a><h1 style="flex:1;text-align:center">O aplikaci</h1><span style="width:44px"></span></div>
+    <div class="scroll pad">
+      <div style="text-align:center;margin:6px 0 18px"><div style="display:flex;justify-content:center">${logo(72)}</div><h2 style="margin:12px 0 2px;font-size:24px">Plamínek</h2>
+        <p class="small muted" style="margin:0">Seznamka · verze ${esc(C.APP_VERSION || '1.0')}</p>
+        <p class="lead" style="font-size:15px;margin:12px 0 0">Česká seznamka pro skutečné lidi a skutečná setkání. Ověřené profily, lidé ve tvém okolí, shoda podle povahy a bezpečí na prvním místě.</p></div>
+      <p class="label-caps">Právní informace</p>
+      <div class="group">
+        ${row(C.TERMS_URL, '📄', 'Podmínky používání')}
+        ${row(C.PRIVACY_URL, '🔒', 'Ochrana osobních údajů', 'GDPR, jaké údaje a proč')}
+        ${row('pravidla-komunity.html', '🤝', 'Pravidla komunity')}
+        ${row('smazani-dat.html', '🗑️', 'Smazání účtu a údajů')}
+      </div>
+      <p class="label-caps">Bezpečí a pomoc</p>
+      <div class="group">
+        ${row('bezpecnost.html', '🛡️', 'Bezpečné seznamování', 'Tipy na první rande')}
+        ${row('#/support', '💬', 'Podpora Plamínku', 'Asistent hned, člověk do 24 h', false)}
+        ${row(`mailto:${esc(C.SUPPORT_EMAIL)}`, '✉️', 'Napsat e-mail', esc(C.SUPPORT_EMAIL), false)}
+      </div>
+      <p class="label-caps">Provozovatel</p>
+      <div class="group"><div class="settings-row" style="display:block;line-height:1.5;text-align:left">
+        <b>Marek Šafránek</b> · MS Studio<br><span class="small muted">Liberec, Česká republika · ${esc(C.SUPPORT_EMAIL)}</span></div></div>
+      <p class="small muted" style="text-align:center;margin:18px 0 calc(24px + var(--safe-b))">© ${new Date().getFullYear()} Plamínek · Emoji: Noto Emoji (Apache 2.0)<br>Vyrobeno s 💜 v Liberci</p>
+    </div></div>`;
+}
+
 async function renderSettings() {
   const p = S.me;
   const user = S.session.user;
@@ -2485,9 +2515,8 @@ async function renderSettings() {
       <div class="group" id="s-blocks"><div class="settings-row"><span class="muted">Načítám blokované…</span></div></div>
       <p class="label-caps">Informace</p>
       <div class="group">
-        <a class="settings-row" href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener"><span>Ochrana soukromí</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
-        <a class="settings-row" href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener"><span>Podmínky používání</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
-        <a class="settings-row" href="mailto:${esc(C.SUPPORT_EMAIL)}"><span>Napsat podpoře</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        <a class="settings-row" href="#/about"><span>${I.flame({ size: 18, color: 'var(--accent)' })}O aplikaci a právní informace</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
+        <a class="settings-row" href="#/support"><span>${I.mail({ size: 18, color: 'var(--accent)' })}Podpora a nahlášení chyby</span>${I.chevron({ size: 18, color: 'var(--muted)' })}</a>
       </div>
       <div class="group" style="margin-top:18px">
         ${row(I.logout({ size: 18, color: 'var(--accent)' }), 'Odhlásit se', ' ', 'data-k="logout"')}
