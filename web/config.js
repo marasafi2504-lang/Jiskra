@@ -65,4 +65,4 @@ export const COIN_VERIFY_BONUS = 500;
 export const APP_VERSION = '1.0';
 
 // Přihlášení přes Seznam – zapni (true) až po nastavení SEZNAM_CLIENT_ID a SEZNAM_CLIENT_SECRET v Supabase
-export const SEZNAM_ENABLED = false;
+export const SEZNAM_ENABLED = true;
