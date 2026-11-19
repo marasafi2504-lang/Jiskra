@@ -84,3 +84,17 @@ language sql stable security definer set search_path = public as $$
   end
   from profiles p where p.id = pid and not p.banned
 $$;
+
+-- v9c: s předplatným kontakty hned, bez předplatného po 10 zprávách (oba psali)
+create or replace function public.block_contacts() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare n int; senders int;
+begin
+  if new.body is null or not has_contact(new.body) then return new; end if;
+  if coalesce((select is_admin from profiles where id = new.sender), false) then return new; end if;
+  if TG_TABLE_NAME = 'message_requests' then raise exception 'contact_too_early' using errcode = 'P0001'; end if;
+  if current_plan(new.sender) is not null then return new; end if;
+  select count(*), count(distinct sender) into n, senders from messages where match_id = new.match_id and coalesce(kind,'text') <> 'system';
+  if n < 10 or senders < 2 then raise exception 'contact_too_early:%', greatest(10 - n, 1) using errcode = 'P0001'; end if;
+  return new;
+end $$;

@@ -1285,12 +1285,12 @@ function hasContact(t) {
     || /(^|[^a-zà-ž0-9])(insta|instagram|instáč|instac|instáčo|ig|fb|facebook|messenger|snap|snapchat|whatsapp|whatsup|wapp|telegram|tiktok|signal|viber|discord|onlyfans)(?![a-zà-ž0-9])/.test(l)
     || /(^|\s)@[a-z0-9._]{3,}/.test(l) || /\+?\d{9,}/.test(String(t).replace(/[\s.\-()/]/g, ''));
 }
-function contactUpsell() {
-  const w = sheet(`<div style="text-align:center"><div style="font-size:40px">🔒</div>
-    <h2 style="margin:6px 0 6px;font-size:21px">Kontakty jen s předplatným</h2>
-    <p class="lead" style="font-size:15px">Instagram, telefon, e-mail a odkazy můžeš posílat s <b>Plamínek Plus</b> a vyšším – a to až když si napíšete aspoň 10 zpráv. Chráníme tím všechny před spamem a podvodníky.<br>Zatím si pište tady – je to bezpečné 💜</p>
-    <button class="btn btn-primary" data-k="go" style="margin-top:14px">Zobrazit předplatné</button>
-    <button class="link-btn" data-k="no" style="margin-top:12px">Psát dál bez kontaktu</button></div>`);
+function contactUpsell(left = 0) {
+  const w = sheet(`<div style="text-align:center"><div style="font-size:40px">💬</div>
+    <h2 style="margin:6px 0 6px;font-size:21px">Nejdřív se trochu poznejte</h2>
+    <p class="lead" style="font-size:15px">Instagram, číslo a další kontakty si můžete poslat, až si napíšete <b>aspoň 10 zpráv</b>${left ? ` – chybí ještě <b>${left}</b>` : ''}.<br>S <b>předplatným</b> je pošleš <b>hned</b>, bez čekání.</p>
+    <button class="btn btn-primary" data-k="go" style="margin-top:14px">Poslat hned s předplatným</button>
+    <button class="link-btn" data-k="no" style="margin-top:12px">Psát dál</button></div>`);
   $('[data-k=go]', w).onclick = () => { w.remove(); location.hash = '#/premium'; };
   $('[data-k=no]', w).onclick = () => w.remove();
 }
@@ -1842,8 +1842,7 @@ async function renderChat(matchId) {
   const send = async (row) => {
     const { data, error } = await sb.from('messages').insert({ match_id: matchId, sender: me, ...row }).select().single();
     if (error) { const em = String(error.message);
-      if (em.includes('contact_needs_plan')) { contactUpsell(); return false; }
-      if (em.includes('contact_too_early')) { toast(`Kontakty si můžete poslat, až si napíšete aspoň 10 zpráv${/:(\d+)/.test(em) ? ` (chybí ${em.match(/:(\d+)/)[1]})` : ''}. Poznejte se nejdřív tady 💜`, 4500); return false; } toast(String(error.message).includes('blocked') ? 'Tomuhle člověku už nemůžeš psát.' : errText(error)); return false; }
+      if (em.includes('contact_')) { contactUpsell(/:(\d+)/.test(em) ? +em.match(/:(\d+)/)[1] : 0); return false; } toast(String(error.message).includes('blocked') ? 'Tomuhle člověku už nemůžeš psát.' : errText(error)); return false; }
     add(data); return true;
   };
 
@@ -1851,10 +1850,9 @@ async function renderChat(matchId) {
     e.preventDefault();
     const body = input.value.trim();
     if (!body) return;
-    if (hasContact(body)) {
-      if (!S.plan) return contactUpsell();
-      const mine = box.querySelectorAll('.msg.me').length, theirs = box.querySelectorAll('.msg:not(.me):not(.sys)').length;
-      if (mine + theirs < 10 || !theirs) return toast(`Kontakty si můžete poslat, až si napíšete aspoň 10 zpráv (chybí ${Math.max(10 - mine - theirs, 1)}). Poznejte se nejdřív tady 💜`, 4500);
+    if (hasContact(body) && !S.plan) {
+      const n = box.querySelectorAll('.msg.me').length + box.querySelectorAll('.msg:not(.me):not(.sys)').length;
+      if (n < 10 || !box.querySelector('.msg:not(.me):not(.sys)')) return contactUpsell(Math.max(10 - n, 1));
     }
     input.value = ''; syncButtons();
     if (!(await send({ body }))) { input.value = body; syncButtons(); }
@@ -2126,7 +2124,7 @@ const FAQ = [
   { k: ['smaz', 'smaž', 'zruš účet', 'zrus ucet', 'odstran', 'pauz', 'pozastav'], q: 'Smazání nebo pozastavení účtu',
     a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.', actions: [['pause', '⏸️ Pozastavit profil'], ['delete', '🗑️ Smazat účet']] },
   { k: ['kontakt', 'instagram', 'insta', 'telefon', 'číslo', 'cislo', 'odkaz'], q: 'Proč nejde poslat Instagram nebo číslo?',
-    a: 'Kontakty (Instagram, telefon, e-mail, odkazy) jdou ve zprávách posílat s předplatným Plus a vyšším, a to až když si s tím člověkem napíšete aspoň 10 zpráv. V první zprávě bez shody je poslat nejde. Chráníme tím všechny před spamem, podvodníky a falešnými profily. S předplatným si můžeš Instagram dát i do profilu.', actions: [['go:#/premium', '👑 Zobrazit předplatné'], ['go:#/edit', '📸 Přidat Instagram do profilu']] },
+    a: 'Kontakty (Instagram, telefon, e-mail, odkazy) si můžete poslat, až si se shodou napíšete aspoň 10 zpráv. S předplatným Plus a vyšším je pošleš hned. V první zprávě bez shody je poslat nejde. Chráníme tím všechny před spamem, podvodníky a falešnými profily. S předplatným si můžeš Instagram dát i do profilu.', actions: [['go:#/premium', '👑 Zobrazit předplatné'], ['go:#/edit', '📸 Přidat Instagram do profilu']] },
   { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
     a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Pokud jsi v ohrožení, volej 112.' },
   { k: ['heslo', 'hesla', 'heslem', 'password'], q: 'Změna hesla',
@@ -2730,7 +2728,7 @@ async function renderAdmin(tab) {
 // Předplatné
 // ---------------------------------------------------------------------
 const TIERS = {
-  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Pokročilé filtry (výška, cíl, děti…)', 'Instagram v profilu a posílání kontaktů (po 10 zprávách)', 'Uvidíš Instagram v profilech', 'Žádné reklamy'],
+  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Pokročilé filtry (výška, cíl, děti…)', 'Instagram v profilu a kontakty hned (bez čekání na 10 zpráv)', 'Uvidíš Instagram v profilech', 'Žádné reklamy'],
   gold: ['Vše z Plus', 'Uvidíš, kdo tě lajkl', 'Kdo mě viděl', 'Top výběr: 10 shod denně', '1 Boost měsíčně', '5 Super Like každý týden'],
   platinum: ['Vše z Gold', '3 Boosty měsíčně', 'Tvoje lajky uvidí jako první', 'Přednostní zobrazení v okolí'],
 };
