@@ -587,3 +587,8 @@ html[data-theme]:not([data-theme="noc"]) body { background: transparent; }
 .bot-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .bot-acts button { min-height: 36px; padding: 6px 14px; border-radius: 18px; border: 1px solid var(--line-strong); background: var(--card-2); color: #fff; font-size: 13px; font-weight: 600; }
 .winback-badge { display: inline-block; padding: 6px 14px; border-radius: 14px; background: linear-gradient(135deg, #FDE68A, #F59E0B); color: #1a1205; font-weight: 800; font-size: 14px; }
+
+.ig-row:empty { display: none; }
+.ig-row { margin-top: 10px; }
+.ig-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--card-2); color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; }
+.ig-chip.locked { color: var(--accent); }

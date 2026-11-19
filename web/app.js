@@ -364,6 +364,7 @@ async function loadMatches() {
 async function sendRequest(p) {
   const msg = await dialog({ title: `💌 Zpráva – ${p.name}`, text: 'Zpráva dorazí, i když zatím nemáte shodu. Zdarma můžeš napsat 1 člověku denně (Gold 3, Platinum 5).', input: true, placeholder: 'Ahoj! Zaujalo mě…', ok: 'Odeslat 💌' });
   if (!msg) return false;
+  if (hasContact(msg)) { toast('V první zprávě nejde posílat kontakty (Instagram, číslo, odkazy). Nejdřív se poznejte tady 💜', 4500); return false; }
   const args = { pid: p.id, msg: msg.slice(0, 500) };
   let { data, error } = await sb.rpc('send_request', args);
   if (error && String(error.message).includes('request_limit')) {
@@ -952,6 +953,9 @@ function renderEdit() {
       <div class="field"><label for="e-bio">Popis</label><textarea class="input" id="e-bio" maxlength="500">${esc(p.bio)}</textarea></div>
       <div class="row"><div class="field"><label for="e-city">Město</label><input class="input" id="e-city" maxlength="60" value="${esc(p.city)}"></div>
         <div class="field"><label for="e-job">Práce / škola</label><input class="input" id="e-job" maxlength="60" value="${esc(p.job)}"></div></div>
+        <div class="field"><label for="e-ig">Instagram ${S.plan ? '<span class="small muted">(nepovinné, uvidí ho jen lidé s předplatným)</span>' : '<span class="small muted">🔒 jen s předplatným</span>'}</label>
+          ${S.plan ? `<input class="input" id="e-ig" maxlength="31" autocapitalize="off" autocomplete="off" placeholder="tvoje_prezdivka" value="${esc(p.instagram || '')}">`
+          : '<a class="ig-chip locked" href="#/premium" style="margin-top:4px">🔒 Odemknout Instagram v profilu</a>'}</div>
       <div class="field"><span class="lbl">Zájmy (max. 8)</span>${chipsHTML(E.interests)}</div>
       <p class="label-caps" style="margin-top:20px">Detaily</p><div id="e-details">${detailsEditorHTML(E)}</div>
       <p class="label-caps" style="margin-top:20px">Otázky v profilu</p><div id="e-prompts">${promptsEditorHTML(E.prompts)}</div>
@@ -987,7 +991,9 @@ function renderEdit() {
     let minAge = Math.max(18, parseInt($('#e-min').value, 10) || 18), maxAge = Math.min(99, parseInt($('#e-max').value, 10) || 99);
     if (minAge > maxAge) [minAge, maxAge] = [maxAge, minAge];
     const btn = $('#ef button[type=submit]'); btn.disabled = true;
-    const row = { name, bio: $('#e-bio').value.trim(), city: $('#e-city').value.trim(), job: $('#e-job').value.trim(),
+    const ig = !$('#e-ig') ? (S.me.instagram || '') : $('#e-ig').value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
+    if (ig && !/^[A-Za-z0-9._]{1,30}$/.test(ig)) return toast('Instagram: napiš jen přezdívku (písmena, čísla, tečka, podtržítko).');
+    const row = { ...($('#e-ig') ? { instagram: ig || null } : {}), name, bio: $('#e-bio').value.trim(), city: $('#e-city').value.trim(), job: $('#e-job').value.trim(),
       interests: [...E.interests], photos: E.photos, photo_url: E.photos[0], personality: E.personality, mode: E.mode, gender: E.gender,
       looking_for: E.mode === 'pratele' ? 'vsechny' : E.looking_for, min_age: minAge, max_age: maxAge, max_distance_km: +$('#e-dist').value,
       prompts: E.prompts.filter((x) => x.a && x.a.trim()).map((x) => ({ q: x.q, a: x.a.trim().slice(0, 150) })), ...pickDetails(E) };
@@ -1041,7 +1047,7 @@ function detailHTML(p, actions) {
   blocks.push(photos[0] ? `<div class="d-photo" style="${bgImg(photos[0])}"></div>` : '');
   blocks.push(`<div class="d-sec"><h2 class="d-name">${esc(p.name)}, ${esc(p.age)} ${p.verified ? verifiedBadge(24) : ''}</h2>
     <div class="badges" style="margin-top:8px">${badgesHTML(p)}${p.active_recently ? '<span class="badge-chip"><span class="active-dot"></span>Aktivní dnes</span>' : ''}</div>
-    <div class="meta" style="margin-top:10px">${p.job ? `<span>${I.bag({ size: 15, color: 'var(--accent)' })}${esc(p.job)}</span>` : ''}${p.city ? `<span>${I.pin({ size: 15, color: 'var(--accent)' })}${esc(p.city)}</span>` : ''}</div></div>`);
+    <div class="meta" style="margin-top:10px">${p.job ? `<span>${I.bag({ size: 15, color: 'var(--accent)' })}${esc(p.job)}</span>` : ''}${p.city ? `<span>${I.pin({ size: 15, color: 'var(--accent)' })}${esc(p.city)}</span>` : ''}</div><div class="ig-row" data-ig></div></div>`);
   if (prompts[0]) blocks.push(`<div class="prompt-card"><div class="pq">${esc(prompts[0].q)}</div><div class="pa">${esc(prompts[0].a)}</div></div>`);
   if (photos[1]) blocks.push(`<div class="d-photo" style="${bgImg(photos[1])}"></div>`);
   const facts = [p.height_cm ? [I.ruler, `${p.height_cm} cm`] : null,
@@ -1076,6 +1082,13 @@ function openDetail(p, actions = [], onAction = null) {
   document.body.appendChild(el);
   const close = () => el.remove();
   $('[data-close]', el).onclick = close;
+  if (p.id && p.id !== uid()) sb.rpc('profile_instagram', { pid: p.id }).then(({ data }) => {
+    const box = $('[data-ig]', el); if (!box || !data) return;
+    box.innerHTML = data === '🔒'
+      ? `<a class="ig-chip locked" href="#/premium">${I.lock({ size: 15, color: 'var(--accent)' })} Instagram – odemkni s předplatným</a>`
+      : `<a class="ig-chip" href="https://instagram.com/${encodeURIComponent(data)}" target="_blank" rel="noopener">📸 @${esc(data)}</a>`;
+    const a = $('a.locked', box); if (a) a.onclick = () => close();
+  });
   $$('[data-k]', el).forEach((b) => (b.onclick = () => { close(); if (onAction) onAction(b.dataset.k); }));
   const rep = $('[data-report]', el);
   if (rep) rep.onclick = async () => { close(); if (await reportUser(p.id, p.name) && onAction) onAction('removed'); };
@@ -1261,6 +1274,24 @@ function winbackSheet() {
     w.remove(); if (error) return toast(errText(error));
     S.me.paused = true; toast('Profil pozastaven ⏸ Zapneš ho v Nastavení.', 4000);
   };
+  $('[data-k=no]', w).onclick = () => w.remove();
+}
+
+// Kontakty ve zprávách (Instagram, telefon, e-mail, odkazy) – jen s předplatným. Stejné pravidlo hlídá i server.
+function hasContact(t) {
+  const l = String(t).toLowerCase();
+  return /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(l) || /(https?:\/\/|www\.)/.test(l)
+    || /[a-z0-9-]+\.(com|cz|sk|net|org|me|io|gg|ly|link|app|eu)(\b|\/)/.test(l)
+    || /(^|[^a-zà-ž0-9])(insta|instagram|instáč|instac|instáčo|ig|fb|facebook|messenger|snap|snapchat|whatsapp|whatsup|wapp|telegram|tiktok|signal|viber|discord|onlyfans)(?![a-zà-ž0-9])/.test(l)
+    || /(^|\s)@[a-z0-9._]{3,}/.test(l) || /\+?\d{9,}/.test(String(t).replace(/[\s.\-()/]/g, ''));
+}
+function contactUpsell() {
+  const w = sheet(`<div style="text-align:center"><div style="font-size:40px">🔒</div>
+    <h2 style="margin:6px 0 6px;font-size:21px">Kontakty jen s předplatným</h2>
+    <p class="lead" style="font-size:15px">Instagram, telefon, e-mail a odkazy můžeš posílat s <b>Plamínek Plus</b> a vyšším – a to až když si napíšete aspoň 10 zpráv. Chráníme tím všechny před spamem a podvodníky.<br>Zatím si pište tady – je to bezpečné 💜</p>
+    <button class="btn btn-primary" data-k="go" style="margin-top:14px">Zobrazit předplatné</button>
+    <button class="link-btn" data-k="no" style="margin-top:12px">Psát dál bez kontaktu</button></div>`);
+  $('[data-k=go]', w).onclick = () => { w.remove(); location.hash = '#/premium'; };
   $('[data-k=no]', w).onclick = () => w.remove();
 }
 
@@ -1810,7 +1841,9 @@ async function renderChat(matchId) {
 
   const send = async (row) => {
     const { data, error } = await sb.from('messages').insert({ match_id: matchId, sender: me, ...row }).select().single();
-    if (error) { toast(String(error.message).includes('blocked') ? 'Tomuhle člověku už nemůžeš psát.' : errText(error)); return false; }
+    if (error) { const em = String(error.message);
+      if (em.includes('contact_needs_plan')) { contactUpsell(); return false; }
+      if (em.includes('contact_too_early')) { toast(`Kontakty si můžete poslat, až si napíšete aspoň 10 zpráv${/:(\d+)/.test(em) ? ` (chybí ${em.match(/:(\d+)/)[1]})` : ''}. Poznejte se nejdřív tady 💜`, 4500); return false; } toast(String(error.message).includes('blocked') ? 'Tomuhle člověku už nemůžeš psát.' : errText(error)); return false; }
     add(data); return true;
   };
 
@@ -1818,6 +1851,11 @@ async function renderChat(matchId) {
     e.preventDefault();
     const body = input.value.trim();
     if (!body) return;
+    if (hasContact(body)) {
+      if (!S.plan) return contactUpsell();
+      const mine = box.querySelectorAll('.msg.me').length, theirs = box.querySelectorAll('.msg:not(.me):not(.sys)').length;
+      if (mine + theirs < 10 || !theirs) return toast(`Kontakty si můžete poslat, až si napíšete aspoň 10 zpráv (chybí ${Math.max(10 - mine - theirs, 1)}). Poznejte se nejdřív tady 💜`, 4500);
+    }
     input.value = ''; syncButtons();
     if (!(await send({ body }))) { input.value = body; syncButtons(); }
   };
@@ -2087,6 +2125,8 @@ const FAQ = [
     a: 'Otevři Profil → Nastavení a zapni „Push notifikace“. Pak zkontroluj v telefonu Nastavení → Aplikace → Plamínek → Oznámení, že jsou povolená. Na některých telefonech pomůže vypnout pro Plamínek úsporu baterie.', actions: [['go:#/settings', '🔔 Nastavení upozornění']] },
   { k: ['smaz', 'smaž', 'zruš účet', 'zrus ucet', 'odstran', 'pauz', 'pozastav'], q: 'Smazání nebo pozastavení účtu',
     a: 'Profil → Nastavení → Smazat účet. Smaže se profil, fotky, shody i zprávy a nejde to vrátit. Pokud si chceš jen odpočinout, zapni v Nastavení „Pozastavit profil“ – nikdo nový tě neuvidí a o nic nepřijdeš.', actions: [['pause', '⏸️ Pozastavit profil'], ['delete', '🗑️ Smazat účet']] },
+  { k: ['kontakt', 'instagram', 'insta', 'telefon', 'číslo', 'cislo', 'odkaz'], q: 'Proč nejde poslat Instagram nebo číslo?',
+    a: 'Kontakty (Instagram, telefon, e-mail, odkazy) jdou ve zprávách posílat s předplatným Plus a vyšším, a to až když si s tím člověkem napíšete aspoň 10 zpráv. V první zprávě bez shody je poslat nejde. Chráníme tím všechny před spamem, podvodníky a falešnými profily. S předplatným si můžeš Instagram dát i do profilu.', actions: [['go:#/premium', '👑 Zobrazit předplatné'], ['go:#/edit', '📸 Přidat Instagram do profilu']] },
   { k: ['nahlás', 'nahlas', 'obtěž', 'obtez', 'podvod', 'fake', 'falešn', 'falesn', 'blok', 'vyhrož', 'vyhroz'], q: 'Někdo mě obtěžuje',
     a: 'V profilu nebo chatu toho člověka klepni na ⋯ → Blokovat nebo Nahlásit. Nahlášení kontrolujeme ručně. Nikdy nikomu neposílej peníze ani kódy z SMS. Pokud jsi v ohrožení, volej 112.' },
   { k: ['heslo', 'hesla', 'heslem', 'password'], q: 'Změna hesla',
@@ -2690,7 +2730,7 @@ async function renderAdmin(tab) {
 // Předplatné
 // ---------------------------------------------------------------------
 const TIERS = {
-  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Pokročilé filtry (výška, cíl, děti…)', 'Žádné reklamy'],
+  plus: ['Neomezené lajky', 'Vrácení posledního swipu', 'Pokročilé filtry (výška, cíl, děti…)', 'Instagram v profilu a posílání kontaktů (po 10 zprávách)', 'Uvidíš Instagram v profilech', 'Žádné reklamy'],
   gold: ['Vše z Plus', 'Uvidíš, kdo tě lajkl', 'Kdo mě viděl', 'Top výběr: 10 shod denně', '1 Boost měsíčně', '5 Super Like každý týden'],
   platinum: ['Vše z Gold', '3 Boosty měsíčně', 'Tvoje lajky uvidí jako první', 'Přednostní zobrazení v okolí'],
 };
