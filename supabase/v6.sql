@@ -118,8 +118,12 @@ begin
       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || rkey),
       body := jsonb_build_object('from', 'Plamínek <onboarding@resend.dev>', 'to', jsonb_build_array(remail),
         'subject', case when new.body like '🐞%' then 'Plamínek – 🐞 nahlášená chyba' else 'Plamínek – nová zpráva podpoře' end,
-        'text', 'V aplikaci Plamínek čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
-                'Přečteš si ji a odpovíš v aplikaci: Profil → Administrace → Podpora.'));
+        'text', case when new.body like '🐞%' then
+                  'Nahlášená chyba v Plamínku' || chr(10) || to_char(now() at time zone 'Europe/Prague', 'DD. MM. YYYY HH24:MI') || chr(10) || chr(10) ||
+                  new.body || chr(10) || chr(10) ||
+                  'Uživateli odpovíš v aplikaci: Profil → Administrace → Podpora.'
+                else 'V aplikaci Plamínek čeká nová zpráva podpoře.' || chr(10) || chr(10) ||
+                  'Přečteš si ji a odpovíš v aplikaci: Profil → Administrace → Podpora.' end));
   end if;
   return new;
 exception when others then return new;
