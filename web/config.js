@@ -63,3 +63,6 @@ export const COIN_COSTS = { boost: 500, super: 100, reveal: 150, rewind: 50, mes
 export const COIN_VERIFY_BONUS = 500;
 
 export const APP_VERSION = '1.0';
+
+// Přihlášení přes Seznam – zapni (true) až po nastavení SEZNAM_CLIENT_ID a SEZNAM_CLIENT_SECRET v Supabase
+export const SEZNAM_ENABLED = false;

@@ -253,6 +253,7 @@ const PROVIDERS = {
   google: { name: 'Google', cls: 'g', icon: '<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>' },
   facebook: { name: 'Facebook', cls: 'fb', icon: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M14 8h3V4h-3c-2.8 0-4 1.7-4 4.3V10H7v4h3v8h4v-8h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg>' },
   apple: { name: 'Apple', cls: 'apple', icon: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#000" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9s-2-.9-3.4-.9C5.9 6.8 4 8 3 9.8c-2 3.5-.5 8.6 1.4 11.4.9 1.4 2 2.9 3.5 2.8 1.4-.1 1.9-.9 3.6-.9s2.1.9 3.6.9c1.5 0 2.4-1.4 3.3-2.7 1-1.6 1.5-3.1 1.5-3.2-.1 0-2.5-1-2.5-3.5zM13.8 4.9c.8-.9 1.3-2.2 1.2-3.4-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.2 3.3 1.2.1 2.4-.6 3.2-1.5z"/></svg>' },
+  seznam: { name: 'Seznam', cls: 'szn', icon: '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#fff"/><path fill="#CC0000" d="M15.6 7.3c-1-.6-2.2-.9-3.4-.9-2.3 0-4 1.2-4 3 0 1.6 1.2 2.4 3.2 2.9 1.4.4 1.9.7 1.9 1.3 0 .6-.6 1-1.6 1-1.2 0-2.4-.4-3.5-1.1l-.8 2c1.1.7 2.6 1.1 4.1 1.1 2.6 0 4.2-1.3 4.2-3.2 0-1.6-1-2.5-3.2-3-1.4-.4-1.9-.6-1.9-1.2 0-.5.5-.9 1.4-.9 1 0 2 .3 2.8.8z"/></svg>' },
   azure: { name: 'Microsoft', cls: 'ms', icon: '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#F25022" d="M2 2h9.5v9.5H2z"/><path fill="#7FBA00" d="M12.5 2H22v9.5h-9.5z"/><path fill="#00A4EF" d="M2 12.5h9.5V22H2z"/><path fill="#FFB900" d="M12.5 12.5H22V22h-9.5z"/></svg>' },
   discord: { name: 'Discord', cls: 'dc', icon: '' }, twitter: { name: 'X (Twitter)', cls: 'x', icon: '' },
   spotify: { name: 'Spotify', cls: 'sp', icon: '' }, linkedin_oidc: { name: 'LinkedIn', cls: 'li', icon: '' },
@@ -267,6 +268,7 @@ async function loadProviders() {
     const j = await r.json();
     enabledProviders = PROVIDER_ORDER.filter((k) => j.external && j.external[k]);
   } catch { enabledProviders = (C.AUTH_PROVIDERS || []).slice(); }
+  if (C.SEZNAM_ENABLED && !enabledProviders.includes('seznam')) enabledProviders.splice(1, 0, 'seznam');
   return enabledProviders;
 }
 const verifiedBadge = (size = 22) =>
@@ -490,6 +492,11 @@ function subscribeGlobal() {
 // Router
 // ---------------------------------------------------------------------
 async function route() {
+  if (location.hash.includes('login_error=')) {
+    const m = decodeURIComponent(location.hash.split('login_error=')[1] || '');
+    history.replaceState(null, '', location.pathname + '#/');
+    setTimeout(() => toast(m || 'Přihlášení se nepodařilo.', 5000), 300);
+  }
   if (S.chatChannel) { sb.removeChannel(S.chatChannel); S.chatChannel = null; }
   $$('.sheet-wrap, .overlay:not(.call-in), .detail').forEach((el) => el.remove());
   window.scrollTo(0, 0);
@@ -644,6 +651,7 @@ function renderCheckMail(email) {
 }
 
 async function oauth(provider) {
+  if (provider === 'seznam') { location.href = `${C.SUPABASE_URL}/functions/v1/seznam-auth?redirect=${encodeURIComponent(location.origin + location.pathname)}`; return; }
   const opts = { redirectTo: location.origin + location.pathname };
   if (provider === 'facebook') opts.scopes = 'email,public_profile';
   const { error } = await sb.auth.signInWithOAuth({ provider, options: opts });

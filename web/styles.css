@@ -592,3 +592,5 @@ html[data-theme]:not([data-theme="noc"]) body { background: transparent; }
 .ig-row { margin-top: 10px; }
 .ig-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--card-2); color: #fff; text-decoration: none; font-size: 14px; font-weight: 600; }
 .ig-chip.locked { color: var(--accent); }
+
+.btn-social.szn { background: #CC0000; color: #fff; border-color: #CC0000; }
