@@ -2467,9 +2467,7 @@ function renderVerify() {
           <input type="file" accept="image/*" capture="user" class="sr-only" id="selfie"></label>`}
     </div></div>`;
   const inp = $('#selfie');
-  if (inp) inp.onchange = async (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
+  const upload = async (f) => {
     toast('Nahrávám…');
     try {
       const blob = await resizeImage(f, 1080);
@@ -2483,6 +2481,37 @@ function renderVerify() {
       renderVerify();
     } catch (err) { toast(errText(err)); }
   };
+  if (!inp) return;
+  inp.onchange = (e) => { const f = e.target.files && e.target.files[0]; if (f) upload(f); };
+  // Přímo fotoaparát (přední kamera) – bez možnosti vybrat starou fotku z galerie
+  const lbl = inp.closest('label');
+  if (lbl && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    lbl.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } }, audio: false });
+      } catch (err) {
+        toast('Povol přístup ke kameře v nastavení prohlížeče, jinak selfie nepůjde vyfotit.', 5000);
+        return;
+      }
+      const w = document.createElement('div');
+      w.className = 'cam';
+      w.innerHTML = `<div class="cam-pose">Ukaž: ${esc(pose)}</div><video autoplay playsinline muted></video>
+        <div class="cam-bar"><button type="button" class="icon-btn" data-k="x" aria-label="Zavřít">${I.x({ size: 26, color: "#fff" })}</button>
+        <button type="button" class="shoot" data-k="shot" aria-label="Vyfotit"></button><span style="width:44px"></span></div>`;
+      document.body.appendChild(w);
+      const v = $('video', w); v.srcObject = stream;
+      const stop = () => { stream.getTracks().forEach((t) => t.stop()); w.remove(); };
+      $('[data-k=x]', w).onclick = stop;
+      $('[data-k=shot]', w).onclick = () => {
+        const c = document.createElement('canvas');
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        const g = c.getContext('2d'); g.translate(c.width, 0); g.scale(-1, 1); g.drawImage(v, 0, 0);
+        c.toBlob((b) => { stop(); if (b) upload(new File([b], 'selfie.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.9);
+      };
+    });
+  }
 }
 
 // ---------------------------------------------------------------------
