@@ -668,6 +668,7 @@ async function route() {
     case 'support': return renderSupport();
     case 'settings': return renderSettings();
     case 'about': return renderAbout();
+    case 'odstoupit': renderAbout(); return withdrawFlow();
     case 'coins': return renderCoins();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats', arg2) : go('#/profile');
     default: return renderDiscover();
@@ -1496,6 +1497,31 @@ async function deleteAccountFlow() {
   if (error) return toast(errText(error));
   await sb.auth.signOut();
   toast('Účet byl smazán. Díky, že jsi byl(a) s námi 💜', 5000);
+}
+
+// Odstoupení od smlouvy online (§ 1830a OZ): stejně snadné jako nákup; přijetí potvrdíme do chatu s podporou
+function withdrawFlow() {
+  if (DEMO) return toast('V ukázce se nic nekupuje, takže není od čeho odstoupit 🙂');
+  const w = sheet(`<h2 style="margin:4px 0 6px;font-size:22px">Odstoupit od smlouvy</h2>
+    <p class="small muted" style="margin:0 0 14px">Od nákupu můžeš odstoupit do 14 dnů bez udání důvodu. Peníze vrátíme do 14 dnů; za dobu, kdy jsi placené funkce už využíval(a), odečteme poměrnou část. U coinů, se kterými jsi při nákupu souhlasil(a) s okamžitým připsáním, právo odstoupit zaniklo.</p>
+    <div class="field"><span class="lbl">Od čeho odstupuješ</span>${segHTML('wd-kind', { predplatne: 'Předplatné', coiny: 'Coiny' }, 'predplatne')}</div>
+    <div class="field"><label for="wd-name">Jméno a příjmení</label><input class="input" id="wd-name" maxlength="80" autocomplete="name"></div>
+    <div class="field"><label for="wd-det">Upřesnění (nepovinné)</label><input class="input" id="wd-det" maxlength="300" placeholder="např. Gold na 1 měsíc, koupeno 20. 11."></div>
+    <button class="btn btn-primary" data-k="send" style="margin-top:6px">Odstoupit od smlouvy</button>
+    <button class="link-btn" data-k="no" style="margin-top:10px;width:100%">Zpět</button>`);
+  let kind = 'predplatne';
+  bindSeg('wd-kind', (v) => (kind = v));
+  $('[data-k=no]', w).onclick = () => w.remove();
+  $('[data-k=send]', w).onclick = async () => {
+    const fullname = $('#wd-name', w).value.trim();
+    if (fullname.length < 3) return toast('Vyplň prosím jméno a příjmení.');
+    const ok = await dialog({ title: 'Opravdu odstoupit?', text: 'Odešleme prohlášení o odstoupení od smlouvy. Přijetí ti hned potvrdíme v chatu s podporou.', ok: 'Ano, odstoupit', danger: true });
+    if (!ok) return;
+    const { data, error } = await sb.rpc('withdraw_request', { kind, detail: $('#wd-det', w).value.trim(), fullname });
+    if (error) return toast(String(error.message).includes('too_many') ? 'Dnes jsi už odstoupení poslal(a) – potvrzení najdeš v Podpoře.' : errText(error));
+    w.remove();
+    await dialog({ title: 'Odstoupení přijato ✅', text: `Číslo odstoupení: ${data.id}. Potvrzení s datem a časem najdeš v Zprávy → Podpora Plamínku. ${kind === 'predplatne' ? 'Předplatné ještě zruš v Google Play (Účet → Platby a předplatná), aby se znovu neobnovilo.' : ''}`, ok: 'Rozumím', cancel: '' });
+  };
 }
 
 function winbackSheet() {
@@ -2440,7 +2466,7 @@ async function renderSupport() {
     $('#sTips [data-human]').onclick = () => { S.supHuman = true; bot('Jasně! Napiš dole, s čím potřebuješ pomoct, a co nejvíc podrobností (co jsi dělal(a), co se stalo). Člověk z týmu ti odpoví obvykle do 24 hodin a přijde ti upozornění.'); $('#sIn').focus(); };
   };
 
-  bot('Ahoj! 👋 Já jsem Flami 🔥, asistent Plamínku. Zeptej se mě na cokoli k aplikaci, nebo si vyber téma dole. Když si nebudu vědět rady, předám tě člověku z týmu.');
+  bot('Ahoj! 👋 Já jsem Flami 🔥 – nejsem člověk, ale asistent s umělou inteligencí (AI). Zeptej se mě na cokoli k Plamínku, nebo si vyber téma dole. Můžu se splést; když si nebudu vědět rady nebo budeš chtít, předám tě člověku z týmu.');
   const { data: hist } = await sb.from('support_messages').select('*').eq('user_id', me).order('created_at', { ascending: true }).limit(200);
   (hist || []).forEach(human);
   chips();
@@ -2618,6 +2644,8 @@ async function renderCoins() {
 async function buyCoins(pack) {
   if (DEMO) return toast('V ukázce se nic neplatí 🙂 Založ si účet a můžeš začít.');
   if (!inPlayApp()) return toast('Coiny koupíš v aplikaci Plamínek z Google Play.', 4000);
+  const agree = await dialog({ title: `${fmtCoins(pack.coins + (pack.bonus || 0))} coinů`, text: 'Coiny ti připíšeme hned po zaplacení. Souhlasím s okamžitým připsáním a beru na vědomí, že tím ztrácím právo odstoupit od smlouvy do 14 dnů (§ 1837 písm. l) občanského zákoníku).', ok: 'Souhlasím, pokračovat k platbě' });
+  if (!agree) return;
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
     const [details] = await service.getDetails([pack.sku]);
@@ -2739,6 +2767,7 @@ function renderAbout() {
         ${row(C.PRIVACY_URL, '🔒', 'Ochrana osobních údajů', 'GDPR, jaké údaje a proč')}
         ${row('pravidla-komunity.html', '🤝', 'Pravidla komunity')}
         ${row('smazani-dat.html', '🗑️', 'Smazání účtu a údajů')}
+        ${row('#/odstoupit', '↩️', 'Odstoupit od smlouvy', 'Do 14 dnů od nákupu', false)}
       </div>
       <p class="label-caps">Bezpečí a pomoc</p>
       <div class="group">
@@ -3080,10 +3109,10 @@ function renderPremium() {
       </div>
       <label class="consent" for="waiver" style="margin-top:20px">
         <input type="checkbox" id="waiver">
-        <span>Chci, aby mi placené funkce začaly hned po zaplacení, a beru na vědomí, že tím ztrácím právo odstoupit od smlouvy do 14 dnů. Souhlasím s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a>.</span>
+        <span>Chci, aby mi placené funkce začaly hned po zaplacení. Beru na vědomí, že když do 14 dnů odstoupím, zaplatím poměrnou část za dobu, kdy jsem je využíval(a). Souhlasím s <a href="${esc(C.TERMS_URL)}" target="_blank" rel="noopener">podmínkami</a>.</span>
       </label>
       <button class="btn btn-primary" data-act="buy" style="margin-top:14px">Pokračovat – ${total.toLocaleString('cs-CZ')} Kč${period > 1 ? ' za ' + PERIOD_LABEL[period] : ''}</button>
-      <p class="small muted" style="text-align:center;margin:10px 0 24px">Předplatné se automaticky obnovuje. Zrušit ho můžeš kdykoli – v Google Play (Účet → Platby a předplatná) nebo ve správě předplatného.</p>
+      <p class="small muted" style="text-align:center;margin:10px 0 24px">Předplatné se automaticky obnovuje. Zrušit ho můžeš kdykoli – v Google Play (Účet → Platby a předplatná) nebo ve správě předplatného. Do 14 dnů od nákupu můžeš <a href="#/odstoupit">odstoupit od smlouvy</a>.</p>
     </div></div>`;
   $$('#tiers button').forEach((b) => (b.onclick = () => { S.premiumTier = b.dataset.v; renderPremium(); }));
   $$('#periods button').forEach((b) => (b.onclick = () => { S.premiumPeriod = +b.dataset.v; renderPremium(); }));
