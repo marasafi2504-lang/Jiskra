@@ -1092,7 +1092,7 @@ function renderWizard() {
       <button type="button" class="btn btn-outline btn-sm" id="w-push">Povolit</button></div>` : ''}
     <label class="consent" for="w-consent">
       <input type="checkbox" id="w-consent" ${W.consent ? 'checked' : ''}>
-      <span>Souhlasím se zpracováním údajů o mém pohlaví a o tom, koho hledám, aby mi Plamínek mohl ukazovat vhodné lidi. Souhlas můžu kdykoli odvolat smazáním účtu. <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">Zásady ochrany osobních údajů</a></span>
+      <span>Souhlasím se zpracováním údajů o mém pohlaví, o tom, koho hledám, a (pokud ji vyplním) o mé víře, aby mi Plamínek mohl ukazovat vhodné lidi. Souhlas můžu kdykoli odvolat smazáním účtu. <a href="${esc(C.PRIVACY_URL)}" target="_blank" rel="noopener">Zásady ochrany osobních údajů</a></span>
     </label>`;
 
   app.innerHTML = `${waves()}<div class="screen">
