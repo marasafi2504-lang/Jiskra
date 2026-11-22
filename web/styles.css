@@ -639,3 +639,11 @@ button.chip.love[aria-pressed="true"] { background: linear-gradient(135deg, #E04
 .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes dotB { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(-4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .souz-heart, .souz-bars em, .dots i { animation: none; } }
+
+/* Ukázkový režim */
+html.demo body { padding-top: 34px; box-sizing: border-box; }
+html.demo #app { min-height: calc(100dvh - 34px); }
+html.demo #app:has(.tabbar) { height: calc(100dvh - 34px); }
+.demo-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 90; height: 34px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 0 10px; padding-top: env(safe-area-inset-top); font-size: 12.5px; color: #fff; background: linear-gradient(90deg, #12306E, #0E5E57); border-bottom: 1px solid rgb(94 234 212 / .35); white-space: nowrap; }
+.demo-bar button { border: 0; border-radius: 8px; padding: 4px 9px; font-weight: 700; font-size: 12px; color: #06221d; background: var(--accent); }

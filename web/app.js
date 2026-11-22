@@ -1,7 +1,14 @@
 // =====================================================================
 // Plamínek – seznamka (PWA) · verze 3
 // =====================================================================
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+// Ukázkový režim (odkaz s ?ukazka): vymyšlená data, bez přihlášení, nic se neposílá na server – algoritmus ani skutečné profily se neovlivní
+const DEMO = (() => { try { if (new URLSearchParams(location.search).has('ukazka')) sessionStorage.setItem('plaminek-demo', '1'); return sessionStorage.getItem('plaminek-demo') === '1'; } catch { return new URLSearchParams(location.search).has('ukazka'); } })();
+const { createClient } = DEMO ? await import('./demo/mock.js') : await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+if (DEMO) {
+  document.body.insertAdjacentHTML('beforeend', `<div class="demo-bar">👀 <b>Ukázka</b> · vymyšlené profily <button type="button" id="demoExit">Založit účet</button></div>`);
+  document.documentElement.classList.add('demo');
+  document.getElementById('demoExit').onclick = () => { try { sessionStorage.removeItem('plaminek-demo'); } catch {} location.href = location.pathname; };
+}
 import * as C from './config.js';
 
 const app = document.getElementById('app');
@@ -2609,6 +2616,7 @@ async function renderCoins() {
 }
 
 async function buyCoins(pack) {
+  if (DEMO) return toast('V ukázce se nic neplatí 🙂 Založ si účet a můžeš začít.');
   if (!inPlayApp()) return toast('Coiny koupíš v aplikaci Plamínek z Google Play.', 4000);
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
@@ -3088,6 +3096,7 @@ function renderPremium() {
 }
 
 function buyWithStripe(tier, period) {
+  if (DEMO) return toast('V ukázce se nic neplatí 🙂 Založ si účet a můžeš začít.');
   const link = C.PAYMENT_LINKS[tier] && C.PAYMENT_LINKS[tier][period];
   if (!link) return toast('Platby brzy spustíme.');
   const url = new URL(link);
@@ -3097,6 +3106,7 @@ function buyWithStripe(tier, period) {
 }
 
 async function buyWithPlay(tier, period, skuOverride) {
+  if (DEMO) return toast('V ukázce se nic neplatí 🙂 Založ si účet a můžeš začít.');
   const sku = skuOverride || playSku(tier, period);
   try {
     const service = await window.getDigitalGoodsService('https://play.google.com/billing');
