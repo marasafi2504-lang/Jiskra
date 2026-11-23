@@ -27,17 +27,18 @@ export const CUSTOMER_PORTAL_URL = '';
 
 // Ceny zobrazené v aplikaci (Kč za měsíc) – musí odpovídat cenám ve Stripe
 // Nabídka pro ty, kdo chtěli smazat účet a rozmysleli si to (v Google Play založ produkt s tímto ID)
-export const WINBACK = { tier: 'plus', price: 99, sku: 'jiskra_plus_1m_sleva' };
+export const WINBACK = { tier: 'plus', price: 79, sku: 'jiskra_plus_1m_sleva' };
 
 export const PRICES = {
-  plus:     { 1: 199, 6: 129, 12: 99 },
-  gold:     { 1: 349, 6: 229, 12: 169 },
-  platinum: { 1: 499, 6: 329, 12: 249 },
+  // Plamen / Vatra / Slunce (vlastní názvy, interní klíče plus/gold/platinum zůstávají kvůli Google Play)
+  plus:     { 1: 139, 6: 99, 12: 79 },
+  gold:     { 1: 239, 6: 169, 12: 139 },
+  platinum: { 1: 369, 6: 259, 12: 219 },
 };
 
 // Reklamy (Google AdSense) – zobrazují se jen uživatelům bez předplatného.
 // Po schválení AdSense sem vlož ID vydavatele (ca-pub-…) a ID reklamních jednotek.
-// Dokud jsou prázdné, místo reklamy se ukazuje nabídka Plamínek Gold.
+// Dokud jsou prázdné, místo reklamy se ukazuje nabídka předplatného Vatra.
 export const ICE_SERVERS = []; // volitelně TURN server pro videohovory přes mobilní data
 export const ADS = {
   adsenseClient: '',            // např. 'ca-pub-1234567890123456'
@@ -50,13 +51,13 @@ export const TERMS_URL = 'podminky.html';
 export const PRIVACY_URL = 'soukromi.html';
 export const SUPPORT_EMAIL = 'jiskra.podpora@gmail.com';
 
-// Boost Coiny – balíčky (stejné kódy produktů musí být v Google Play → Produkty v aplikaci)
+// Jiskry (virtuální měna) – balíčky (stejné kódy produktů musí být v Google Play → Produkty v aplikaci)
 // price = cena v Kč, jen pro zobrazení na webu; v aplikaci z Google Play se ukáže cena přímo z Google Play
 export const COIN_PACKS = [
-  { sku: 'jiskra_coins_1000', coins: 1000, bonus: 0, price: 300 },
-  { sku: 'jiskra_coins_2500', coins: 2500, bonus: 250, price: 750 },
-  { sku: 'jiskra_coins_5000', coins: 5000, bonus: 750, price: 1500, badge: 'Oblíbené' },
-  { sku: 'jiskra_coins_10000', coins: 10000, bonus: 2000, price: 3000, badge: 'Nejvýhodnější' },
+  { sku: 'jiskra_coins_1000', coins: 1000, bonus: 0, price: 189 },
+  { sku: 'jiskra_coins_2500', coins: 2500, bonus: 250, price: 449 },
+  { sku: 'jiskra_coins_5000', coins: 5000, bonus: 750, price: 849, badge: 'Oblíbené' },
+  { sku: 'jiskra_coins_10000', coins: 10000, bonus: 2000, price: 1590, badge: 'Nejvýhodnější' },
 ];
 // Ceny za coiny – musí odpovídat funkci coin_price() v databázi
 export const COIN_COSTS = { boost: 500, super: 100, reveal: 150, rewind: 50, message: 100 };

@@ -647,3 +647,83 @@ html.demo #app:has(.tabbar) { height: calc(100dvh - 34px); }
 .demo-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 90; height: 34px; display: flex; align-items: center; justify-content: center; gap: 10px;
   padding: 0 10px; padding-top: env(safe-area-inset-top); font-size: 12.5px; color: #fff; background: linear-gradient(90deg, #12306E, #0E5E57); border-bottom: 1px solid rgb(94 234 212 / .35); white-space: nowrap; }
 .demo-bar button { border: 0; border-radius: 8px; padding: 4px 9px; font-weight: 700; font-size: 12px; color: #06221d; background: var(--accent); }
+
+/* ===== Motivy komunit (barvy vlajek, vlastní živé pozadí) ===== */
+html[data-theme="duha"] {
+  --bg: #0C0714; --bg-2: #100A1A; --card: #160E24; --card-2: #1F1433; --card-3: #2A1A45; --line: #3A2A5A; --line-2: #22183A; --line-strong: #7A5AC8;
+  --primary: #D946EF; --primary-2: #F472B6; --primary-3: #8B5CF6; --accent: #FDE047; --accent-soft: #FEF08A; --text-2: #EADFF7; --muted: #B3A3CC;
+  --primary-rgb: 217 70 239; --primary2-rgb: 244 114 182; --primary3-rgb: 139 92 246; --bg-rgb: 12 7 20; --card-rgb: 22 14 36; --accent-rgb: 253 224 71;
+}
+html[data-theme="trans"] {
+  --bg: #0A0E18; --bg-2: #0D1220; --card: #111A2C; --card-2: #17233B; --card-3: #1E2E4C; --line: #2A3D5E; --line-2: #18243A; --line-strong: #5BCEFA;
+  --primary: #EC86A5; --primary-2: #F5A9B8; --primary-3: #5BCEFA; --accent: #5BCEFA; --accent-soft: #BDEBFD; --text-2: #E6EEF8; --muted: #A5B6CC;
+  --primary-rgb: 236 134 165; --primary2-rgb: 245 169 184; --primary3-rgb: 91 206 250; --bg-rgb: 10 14 24; --card-rgb: 17 26 44; --accent-rgb: 91 206 250;
+}
+html[data-theme="bi"] {
+  --bg: #0C0716; --bg-2: #10091C; --card: #170C27; --card-2: #201236; --card-3: #2B1848; --line: #3D2360; --line-2: #241540; --line-strong: #9B4F96;
+  --primary: #D60270; --primary-2: #E83E8C; --primary-3: #0038A8; --accent: #6A8DFF; --accent-soft: #B4C6FF; --text-2: #EBDDF3; --muted: #B29FC8;
+  --primary-rgb: 214 2 112; --primary2-rgb: 232 62 140; --primary3-rgb: 0 56 168; --bg-rgb: 12 7 22; --card-rgb: 23 12 39; --accent-rgb: 106 141 255;
+}
+html[data-theme="nebinarni"] {
+  --bg: #0D0A14; --bg-2: #120E1A; --card: #191424; --card-2: #221B31; --card-3: #2E2442; --line: #3E3456; --line-2: #251E35; --line-strong: #9C59D1;
+  --primary: #9C59D1; --primary-2: #B47EE0; --primary-3: #6B3FA0; --accent: #FCF434; --accent-soft: #FDF9A3; --text-2: #EEE8F5; --muted: #B4A9C6;
+  --primary-rgb: 156 89 209; --primary2-rgb: 180 126 224; --primary3-rgb: 107 63 160; --bg-rgb: 13 10 20; --card-rgb: 25 20 36; --accent-rgb: 252 244 52;
+}
+html[data-theme="lesbicky"] {
+  --bg: #140A0C; --bg-2: #1A0D10; --card: #231216; --card-2: #2E171D; --card-3: #3B1D26; --line: #522A34; --line-2: #2F1820; --line-strong: #D362A4;
+  --primary: #D52D00; --primary-2: #EF7627; --primary-3: #A30262; --accent: #FF9A56; --accent-soft: #FFCBA6; --text-2: #F6E4E6; --muted: #C9A7AE;
+  --primary-rgb: 213 45 0; --primary2-rgb: 239 118 39; --primary3-rgb: 163 2 98; --bg-rgb: 20 10 12; --card-rgb: 35 18 22; --accent-rgb: 255 154 86;
+}
+html[data-theme="duha"] body::before, html[data-theme="trans"] body::before, html[data-theme="bi"] body::before,
+html[data-theme="nebinarni"] body::before, html[data-theme="lesbicky"] body::before { content: ""; position: fixed; inset: -25%; z-index: -1; pointer-events: none; filter: blur(30px) saturate(1.1); }
+html[data-theme="duha"] body::before {
+  background: conic-gradient(from 0deg at 50% 50%, rgba(228,3,3,.22), rgba(255,140,0,.22), rgba(255,237,0,.18), rgba(0,128,38,.22), rgba(36,64,142,.26), rgba(115,41,130,.26), rgba(228,3,3,.22));
+  animation: duhaSpin 40s linear infinite; opacity: .75; }
+html[data-theme="trans"] body::before {
+  background: radial-gradient(40% 30% at 20% 25%, rgba(91,206,250,.28), transparent 70%), radial-gradient(40% 30% at 80% 40%, rgba(245,169,184,.28), transparent 70%), radial-gradient(35% 25% at 50% 80%, rgba(255,255,255,.12), transparent 70%);
+  animation: aurora 20s ease-in-out infinite alternate; }
+html[data-theme="bi"] body::before {
+  background: linear-gradient(160deg, rgba(214,2,112,.30) 0%, transparent 40%, rgba(155,79,150,.25) 50%, transparent 60%, rgba(0,56,168,.32) 100%);
+  animation: aurora 16s ease-in-out infinite alternate; }
+html[data-theme="nebinarni"] body::before {
+  background: radial-gradient(35% 25% at 25% 15%, rgba(252,244,52,.18), transparent 70%), radial-gradient(45% 35% at 75% 55%, rgba(156,89,209,.30), transparent 70%), radial-gradient(40% 30% at 30% 90%, rgba(255,255,255,.08), transparent 70%);
+  animation: aurora 22s ease-in-out infinite alternate; }
+html[data-theme="lesbicky"] body::before {
+  background: radial-gradient(60% 40% at 50% 100%, rgba(213,45,0,.30), transparent 70%), radial-gradient(50% 35% at 20% 60%, rgba(255,154,86,.22), transparent 70%), radial-gradient(45% 30% at 85% 30%, rgba(211,98,164,.28), transparent 70%);
+  animation: aurora 18s ease-in-out infinite alternate; }
+@keyframes duhaSpin { to { transform: rotate(360deg); } }
+html[data-theme="duha"] .spark-title, html[data-theme="duha"] h1 .rainbow { background: linear-gradient(90deg,#FF5A5A,#FFB13B,#FFE94A,#3DDC84,#4C8DFF,#B266FF); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.theme-preview { height: 120px; border-radius: 20px; box-shadow: 0 10px 30px rgb(0 0 0 / .4); animation: prevGlow 3s ease-in-out infinite alternate; }
+@keyframes prevGlow { from { filter: saturate(1) brightness(.95); } to { filter: saturate(1.25) brightness(1.08); } }
+
+/* Vlna částic (shoda, změna motivu) */
+.burst { position: fixed; inset: 0; z-index: 400; pointer-events: none; overflow: hidden; }
+.burst i { position: absolute; top: -40px; font-style: normal; animation: fall var(--d) cubic-bezier(.25,.6,.4,1) forwards; }
+@keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(var(--dx), 110vh) rotate(var(--r)); opacity: .9; } }
+.spark-title { animation: sparkIn .7s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes sparkIn { from { transform: scale(.4) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Hlasové zprávy s vlnou */
+.voice { display: flex; align-items: center; gap: 8px; min-width: 200px; }
+.voice audio { display: none; }
+.vplay { width: 34px; height: 34px; border-radius: 50%; border: 0; flex: none; font-size: 12px; color: #fff; background: var(--primary); box-shadow: 0 0 0 4px rgb(var(--primary-rgb) / .2); }
+.vbars { display: flex; align-items: center; gap: 2px; height: 28px; flex: 1; min-width: 110px; }
+.vbars i { flex: 1; min-width: 2px; height: 40%; border-radius: 2px; background: rgb(255 255 255 / .35); transition: height .12s, background .15s; }
+.vbars i.on { background: var(--accent); }
+.voice.playing .vplay { animation: vpulse 1.2s ease-in-out infinite; }
+@keyframes vpulse { 50% { box-shadow: 0 0 0 8px rgb(var(--primary-rgb) / .12); } }
+.vtime { font-size: 12px; opacity: .8; flex: none; }
+.vbars.live i { background: #F87171; }
+
+/* Identita, videoprofil */
+.ident-chip { background: linear-gradient(90deg, rgb(255 90 90 / .2), rgb(255 233 74 / .18), rgb(61 220 132 / .18), rgb(76 141 255 / .2), rgb(178 102 255 / .22)); border-color: rgb(255 255 255 / .2); }
+.int-cat.ident select.input { appearance: auto; }
+.video-edit video, .d-video video { width: 100%; max-height: 420px; border-radius: 18px; background: #000; object-fit: cover; display: block; }
+.vid-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 14px; border: 1.5px dashed var(--line-strong); border-radius: 18px; font-size: 30px; text-align: center; }
+.vid-empty span { font-size: 13px; opacity: .8; }
+
+/* Hovor jen hlasem */
+.call.audio-only .remote, .call.audio-only .local { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.call.audio-only .call-wait { display: flex !important; }
+.call.audio-only .call-wait .avatar { animation: vpulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .burst, .spark-title, .theme-preview { animation: none !important; display: none; } }

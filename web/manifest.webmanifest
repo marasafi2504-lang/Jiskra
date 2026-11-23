@@ -27,8 +27,8 @@
     { "src": "screenshots/zpravy.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Zprávy a shody" },
     { "src": "screenshots/chat.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Chat, hlasové zprávy a videohovory" },
     { "src": "screenshots/profil.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Tvůj profil" },
-    { "src": "screenshots/premium.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Předplatné Plus, Gold a Platinum" },
-    { "src": "screenshots/coiny.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Boost Coins" }
+    { "src": "screenshots/premium.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Předplatné Plamen, Vatra a Slunce" },
+    { "src": "screenshots/coiny.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Jiskry" }
   ],
   "shortcuts": [
     { "name": "Objevuj", "short_name": "Objevuj", "url": "./#/discover", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] },
