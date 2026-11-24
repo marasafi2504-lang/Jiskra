@@ -27,6 +27,8 @@ export const CUSTOMER_PORTAL_URL = '';
 
 // Ceny zobrazené v aplikaci (Kč za měsíc) – musí odpovídat cenám ve Stripe
 // Nabídka pro ty, kdo chtěli smazat účet a rozmysleli si to (v Google Play založ produkt s tímto ID)
+// Věčný plamen – doživotní tarif Slunce (jednorázový nákup v Google Play)
+export const LIFETIME = { sku: 'plaminek_vecny_plamen', price: 3990, promo: 2990, promoCount: 100, bonus: 10000 };
 export const WINBACK = { tier: 'plus', price: 79, sku: 'jiskra_plus_1m_sleva' };
 
 export const PRICES = {

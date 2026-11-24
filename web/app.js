@@ -750,6 +750,7 @@ async function route() {
     case 'about': return renderAbout();
     case 'odstoupit': renderAbout(); return withdrawFlow();
     case 'coins': return renderCoins();
+    case 'lov': return renderLov();
     case 'admin': return S.me.is_admin ? renderAdmin(arg || 'stats', arg2) : go('#/profile');
     default: return renderDiscover();
   }
@@ -2796,6 +2797,7 @@ async function renderCoins() {
         ${S.me.verified ? `<div class="settings-row"><span>${I.shield({ size: 18, color: '#34D399' })} Ověřený profil</span><span class="small muted">+${fmtCoins(C.COIN_VERIFY_BONUS)} ✓</span></div>`
           : `<a class="settings-row" href="#/verify"><span>${I.shield({ size: 18, color: 'var(--accent)' })} Ověř profil selfie</span><b class="cost plus">+${fmtCoins(C.COIN_VERIFY_BONUS)}</b></a>`}
       </div>
+      <a class="hunt-banner" href="#/lov"><span style="font-size:30px">🎯</span><span><b>Lov jisker</b><br><span class="small">1 reklama = 1 jiskra a los o 1 000 000 jisker</span></span>${I.chevron({ size: 18, color: 'var(--accent)' })}</a>
       <p class="label-caps" style="margin-top:22px">Historie</p>
       <div class="group" id="hist"><div class="settings-row"><span class="muted">Načítám…</span></div></div>
       ${inPlay ? '<button class="link-btn" data-restore style="display:block;margin:14px auto 0">Nepřipsaly se jiskry? Obnovit nákupy</button>' : ''}
@@ -3268,6 +3270,76 @@ const PERIOD_BADGE = { 1: '', 6: 'Oblíbené', 12: 'Nejvýhodnější' };
 const playSku = (tier, months) => `jiskra_${tier}_${months}m`;
 const inPlayApp = () => 'getDigitalGoodsService' in window;
 
+// ---------- Věčný plamen: doživotní tarif (jednorázová platba) ----------
+function eternalSheet() {
+  const L = C.LIFETIME;
+  const w = sheet(`<div style="text-align:center">
+    <div class="eternal-hero"><span>🔥</span><i>♾️</i></div>
+    <h2 style="margin:10px 0 2px;font-size:26px">Věčný plamen</h2>
+    <p class="small muted" style="margin:0 0 14px">Plamen, který nikdy nezhasne. Jedna platba – a máš Plamínek naplno po celou dobu jeho provozu.</p>
+    <div class="panel" style="text-align:left">
+      ${['Vše z tarifu Slunce – navždy, bez obnovování', 'Zlatý odznak Věčného plamene u profilu', 'Vlastní ohnivý motiv „Věčný plamen“', `Jednorázově ${fmtCoins(L.bonus)} jisker navíc`].map((f) => `<div class="feature"><span class="tick">${I.check({ size: 13, color: '#fff', sw: 3.2 })}</span>${esc(f)}</div>`).join('')}
+    </div>
+    <div class="eternal-price"><s>${fmtCoins(L.price)} Kč</s><b>${fmtCoins(L.promo)} Kč</b><span>zaváděcí cena pro prvních ${L.promoCount} lidí</span></div>
+    <button class="btn btn-primary eternal-btn" data-k="buy">Zapálit věčný plamen</button>
+    <p class="small muted" style="margin:10px 0 0">„Navždy“ znamená po celou dobu provozu Plamínku. Při trvalém zablokování za porušení pravidel zaniká bez náhrady. Do 14 dnů můžeš odstoupit (vrátíme cenu poníženou o poměrnou část).</p>
+    <button class="link-btn" data-k="no" style="margin-top:10px">Možná později</button></div>`);
+  $('[data-k=no]', w).onclick = () => w.remove();
+  $('[data-k=buy]', w).onclick = () => { if (DEMO) { w.remove(); FX.play('match'); burst(); return toast('V ukázce se neplatí – takhle by plamen vzplál 🔥'); } toast('Věčný plamen spustíme spolu s platbami. Brzy! 🔥', 3500); };
+}
+
+// ---------- Lov jisker: reklama s odměnou (1 reklama = 1 jiskra + los o jackpot) ----------
+// Skutečné reklamy s odměnou půjdou jen přes AdMob / Google Ad Manager (AdSense odměny zakazuje) – do té doby jen ukázka.
+const HUNT = { perDay: 10, jackpot: 1000000, odds: 5000000 };
+function huntToday() { try { const d = JSON.parse(localStorage.getItem('plaminek-hunt') || '{}'); return d.day === new Date().toDateString() ? d.n : 0; } catch { return 0; } }
+function huntSave(n) { try { localStorage.setItem('plaminek-hunt', JSON.stringify({ day: new Date().toDateString(), n })); } catch {} }
+function renderLov() {
+  const n = huntToday();
+  app.innerHTML = `${waves()}<div class="screen">
+    <div class="topbar"><button class="icon-btn" data-back aria-label="Zpět">${I.back({ size: 22 })}</button><h1 style="flex:1;text-align:center">Lov jisker</h1><span style="width:44px"></span></div>
+    <div class="scroll pad" style="padding-top:4px;text-align:center">
+      <div class="jackpot"><span class="small">Velký plamen</span><b>${fmtCoins(HUNT.jackpot)}</b><span class="small">jisker</span></div>
+      <p class="lead" style="margin:16px 0 4px">Podívej se na krátkou reklamu a získej <b>1 jiskru</b>.<br>Každá reklama je zároveň <b>los o Velký plamen</b>.</p>
+      <p class="small muted">Šance na výhru: <b>1 : ${fmtCoins(HUNT.odds)}</b> za jednu reklamu · losuje server · lepší šanci si nejde koupit</p>
+      <div class="hunt-meter"><i style="width:${(n / HUNT.perDay) * 100}%"></i></div>
+      <p class="small muted" id="huntN">Dnes ${n} / ${HUNT.perDay} reklam</p>
+      <button class="btn btn-primary" id="huntGo" style="margin-top:10px" ${n >= HUNT.perDay ? 'disabled' : ''}>${n >= HUNT.perDay ? 'Na dnes je hotovo – zítra zase 🔥' : '▶ Sledovat reklamu (+1 ✨)'}</button>
+      ${DEMO ? '<button class="link-btn" id="huntWin" style="margin-top:12px;font-size:13px">Ukázat, jak vypadá výhra</button>' : '<p class="small muted" style="margin-top:12px">Lov jisker spustíme brzy.</p>'}
+      <details class="int-cat" style="text-align:left;margin-top:22px"><summary>Pravidla</summary><p class="small" style="padding-bottom:10px">Za jednu dokoukanou reklamu dostaneš 1 jiskru, nejvýš ${HUNT.perDay} denně. Při každé reklamě server náhodně losuje Velký plamen (${fmtCoins(HUNT.jackpot)} jisker) se šancí 1 : ${fmtCoins(HUNT.odds)}. Účast je zdarma, nic se neplatí a šanci nejde zvýšit. Výhrou jsou jiskry pro funkce v aplikaci, nelze je směnit za peníze.</p></details>
+    </div></div>`;
+  $('[data-back]').onclick = () => history.back();
+  const go = $('#huntGo');
+  go.onclick = async () => {
+    if (!DEMO) return toast('Lov jisker spustíme brzy – reklamy s odměnou se teprve připravují. 🔥', 3500);
+    await fakeAd();
+    const k = huntToday() + 1; huntSave(k); S.coins = (S.coins || 0) + 1; FX.play('like');
+    await huntDraw(false);
+    renderLov();
+  };
+  const win = $('#huntWin'); if (win) win.onclick = () => huntDraw(true);
+}
+function fakeAd() {
+  return new Promise((res) => {
+    const ov = document.createElement('div'); ov.className = 'fake-ad';
+    ov.innerHTML = `<div class="fa-box"><span class="small muted">Reklama · ukázka</span><b style="font-size:22px;margin:10px 0">Tady bude reklama 📺</b><span class="small muted">Za <b id="faT">5</b> s dostaneš jiskru</span></div>`;
+    document.body.appendChild(ov);
+    let t = 5; const iv = setInterval(() => { t--; const e = $('#faT', ov); if (e) e.textContent = t; if (t <= 0) { clearInterval(iv); ov.remove(); res(); } }, 1000);
+  });
+}
+function huntDraw(win) {
+  return new Promise((res) => {
+    const ov = document.createElement('div'); ov.className = 'overlay hunt-draw';
+    ov.innerHTML = `<div class="draw-card"><div class="draw-flame">🔥</div><p class="lead" id="drawT">Losuji Velký plamen…</p></div>`;
+    document.body.appendChild(ov);
+    setTimeout(() => {
+      if (win) { $('#drawT', ov).innerHTML = `<b style="font-size:26px">VYHRÁL(A) JSI!</b><br>${fmtCoins(HUNT.jackpot)} jisker 🔥`; FX.play('match'); burst(80); if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 300]); }
+      else $('#drawT', ov).innerHTML = 'Tentokrát ne… ale <b>+1 jiskra</b> je tvoje ✨';
+      ov.onclick = () => { ov.remove(); res(); };
+      setTimeout(() => { if (ov.isConnected) { ov.remove(); res(); } }, win ? 6000 : 1800);
+    }, 1400);
+  });
+}
+
 function renderPremium() {
   const tier = S.premiumTier, period = S.premiumPeriod;
   const total = C.PRICES[tier][period] * period;
@@ -3282,6 +3354,7 @@ function renderPremium() {
       <h1 style="font-size:34px;line-height:1.05;letter-spacing:-.03em">Vyber si své<br><span style="color:var(--accent)">předplatné</span></h1>
       ${S.plan ? `<p class="lead" style="margin-top:10px;font-size:14px">Teď máš <b>${planName[S.plan]}</b> do ${new Date(S.planUntil).toLocaleDateString('cs-CZ')}.</p>` : ''}
       <a class="coin-banner" href="#/coins">${I.coin({ size: 26 })}<span><b>Jen Záři nebo srdcovku?</b> Kup si Jiskry bez předplatného.</span>${I.chevron({ size: 18, color: '#FDE68A' })}</a>
+      <button type="button" class="eternal-banner" data-act="eternal"><span class="eternal-flame">🔥</span><span><b>Věčný plamen ♾️</b><br><span class="small">Slunce navždy – jedna platba, plamen, který nezhasne</span></span>${I.chevron({ size: 18, color: '#FDE68A' })}</button>
       <div class="seg" role="group" aria-label="Tarif" style="margin-top:18px" id="tiers">
         ${Object.keys(TIERS).map((t) => `<button type="button" data-v="${t}" aria-pressed="${t === tier}">${planName[t]}</button>`).join('')}
       </div>
@@ -3303,6 +3376,7 @@ function renderPremium() {
       <p class="small muted" style="text-align:center;margin:10px 0 24px">Předplatné se automaticky obnovuje. Zrušit ho můžeš kdykoli – v Google Play (Účet → Platby a předplatná) nebo ve správě předplatného. Do 14 dnů od nákupu můžeš <a href="#/odstoupit">odstoupit od smlouvy</a>.</p>
     </div></div>`;
   $$('#tiers button').forEach((b) => (b.onclick = () => { S.premiumTier = b.dataset.v; renderPremium(); }));
+  $('[data-act=eternal]').onclick = eternalSheet;
   $$('#periods button').forEach((b) => (b.onclick = () => { S.premiumPeriod = +b.dataset.v; renderPremium(); }));
   $('[data-act=buy]').onclick = () => {
     if (!$('#waiver').checked) return toast('Nejdřív zaškrtni souhlas nad tlačítkem.');
